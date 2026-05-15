@@ -1,0 +1,39 @@
+<view class="page">
+  <view class="header">
+    <text class="title">AI Daily News</text>
+    <text class="subtitle">每日 AI 行业新闻速览</text>
+  </view>
+
+  <!-- 加载提示 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误提示 -->
+  <view class="error" wx:elif="{{error}}">
+    <text>{{error}}</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:elif="{{newsList.length === 0}}">
+    <text class="empty-text">暂无新闻</text>
+  </view>
+
+  <!-- 新闻列表 -->
+  <view class="list" wx:elif="{{newsList.length > 0}}">
+    <view
+      class="news-item"
+      wx:for="{{newsList}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-title="{{item.title}}"
+      data-summary="{{item.summary}}"
+      data-url="{{item.url}}"
+      bind:tap="goDetail"
+    >
+      <text class="item-title">{{item.title}}</text>
+      <text class="item-summary" wx:if="{{item.summary}}">{{item.summary}}</text>
+      <text class="item-time">{{item.time}}</text>
+    </view>
+  </view>
+</view>

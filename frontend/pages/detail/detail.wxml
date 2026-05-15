@@ -1,0 +1,38 @@
+<view class="page">
+  <!-- 加载态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误态 -->
+  <view class="error" wx:elif="{{error}}">
+    <text>{{error}}</text>
+  </view>
+
+  <!-- 内容 -->
+  <view class="content" wx:elif="{{news}}">
+    <text class="title">{{news.title}}</text>
+    <text class="time">{{news.published_at || news.time}}</text>
+
+    <view class="divider"></view>
+
+    <!-- 完整摘要 -->
+    <text class="section-label" wx:if="{{news.summary}}">AI 摘要</text>
+    <text class="summary" wx:if="{{news.summary}}">{{news.summary}}</text>
+
+    <!-- 正文 -->
+    <text class="section-label" wx:if="{{news.content}}">原文</text>
+    <text class="body" wx:if="{{news.content}}">{{news.content}}</text>
+
+    <!-- 原始链接 -->
+    <view class="url-section" wx:if="{{news.url}}">
+      <text class="section-label">原文链接</text>
+      <text class="url-text">{{news.url}}</text>
+    </view>
+
+    <!-- 跳转按钮 -->
+    <view class="footer" wx:if="{{news.url}}">
+      <button class="link-btn" bind:tap="openUrl">查看原文 ↗</button>
+    </view>
+  </view>
+</view>

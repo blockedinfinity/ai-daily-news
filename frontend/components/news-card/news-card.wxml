@@ -1,0 +1,8 @@
+<view class="card" bind:tap="onTap">
+  <view class="source-row">
+    <text class="source">{{source || '未知来源'}}</text>
+    <text class="time">{{time}}</text>
+  </view>
+  <text class="title">{{title}}</text>
+  <text class="summary" wx:if="{{summary}}">{{summary}}</text>
+</view>
