@@ -1,7 +1,7 @@
-"""定时任务 —— 核心管道：RSS 抓取 → 去重 → AI 批量总结 → 写入数据库。"""
+"""定时任务 —— 纯 APScheduler，不依赖 threading。"""
 
 import logging
-import threading
+from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -13,12 +13,10 @@ logger = logging.getLogger(__name__)
 
 def _job():
     news_list = rss.fetch_news()
-
     filtered = dedup.filter_new(news_list)
     if not filtered:
         logger.info("[每日任务] 无新新闻")
         return
-
     logger.info("[每日任务] 抓取 %d 条，新 %d 条", len(news_list), len(filtered))
     summarized, digest = batch_summarize(filtered)
     count = db.save_news(summarized, digest)
@@ -30,8 +28,6 @@ def start_scheduler(app):
     scheduler.add_job(_job, "interval", hours=24, id="daily_news", replace_existing=True)
     scheduler.start()
     logger.info("定时任务已启动（每天执行一次）")
-
-    # 后台线程执行首次任务，避免阻塞 WSGI 启动
-    threading.Thread(target=_job, daemon=True).start()
-
+    # 用 APScheduler 的 date 触发器立即执行一次，不依赖 threading
+    scheduler.add_job(_job, "date", run_date=datetime.now())
     return scheduler
