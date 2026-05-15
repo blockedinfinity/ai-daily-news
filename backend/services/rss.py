@@ -11,7 +11,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = 15
-PER_SOURCE_LIMIT = 10
+PER_SOURCE_LIMIT = 6
 MAX_CONTENT_LENGTH = 2000
 
 SOURCES = [
@@ -22,6 +22,10 @@ SOURCES = [
     {"name": "arXiv AI 论文", "url": "https://export.arxiv.org/rss/cs.AI"},
     {"name": "Hacker News", "url": "https://hnrss.org/frontpage?points=100"},
     {"name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/"},
+    {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/"},
+    {"name": "Google AI", "url": "https://blog.google/innovation-and-ai/technology/ai/rss/"},
+    {"name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss"},
+    {"name": "VentureBeat AI", "url": "https://venturebeat.com/category/ai/feed/"},
 ]
 
 

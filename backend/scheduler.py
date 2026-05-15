@@ -6,7 +6,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from services import db, dedup, rss
-from services.ai import batch_summarize
+from services.ai import batch_summarize, batch_translate
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,8 @@ def _job():
         logger.info("[每日任务] 无新新闻")
         return
     logger.info("[每日任务] 抓取 %d 条，新 %d 条", len(news_list), len(filtered))
-    summarized, digest = batch_summarize(filtered)
+    translated = batch_translate(filtered)
+    summarized, digest = batch_summarize(translated)
     count = db.save_news(summarized, digest)
     logger.info("[每日任务] 入库 %d 条，日报摘要已生成", count)
 

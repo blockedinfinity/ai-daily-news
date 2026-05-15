@@ -9,6 +9,16 @@ DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(DB_DIR, "news.db")
 
 
+def _cn(d):
+    """返回中文优先的 title/content（有翻译用翻译，否则用原文）。"""
+    d = dict(d)
+    if d.get("title_cn"):
+        d["title"] = d["title_cn"]
+    if d.get("content_cn"):
+        d["content"] = d["content_cn"]
+    return d
+
+
 def _connect():
     os.makedirs(DB_DIR, exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -45,6 +55,12 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_news_url ON news(url);
         CREATE INDEX IF NOT EXISTS idx_summary_date ON daily_summary(date);
     """)
+    # 迁移：新增翻译列（幂等，忽略已存在错误）
+    for col in ("title_cn", "content_cn"):
+        try:
+            conn.execute(f"ALTER TABLE news ADD COLUMN {col} TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
     conn.commit()
     conn.close()
 
@@ -68,10 +84,11 @@ def save_news(items, daily_digest=""):
             if exists:
                 continue
         conn.execute(
-            """INSERT INTO news (title, url, source, content, summary, published_at, date)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO news (title, url, source, content, summary, title_cn, content_cn, published_at, date)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (title, url, item.get("source", ""), item.get("content", ""),
-             item.get("summary", ""), item.get("published_at", today), today),
+             item.get("summary", ""), item.get("title_cn", ""), item.get("content_cn", ""),
+             item.get("published_at", today), today),
         )
         count += 1
 
@@ -104,25 +121,26 @@ def get_news_by_date(date_str, page=1, per_page=20):
         "SELECT COUNT(*) FROM news WHERE date = ?", (date_str,)
     ).fetchone()[0]
     conn.close()
-    return [dict(r) for r in rows], total
+    return [_cn(r) for r in rows], total
 
 
 def get_news(news_id):
     conn = _connect()
     row = conn.execute("SELECT * FROM news WHERE id = ?", (news_id,)).fetchone()
     conn.close()
-    return dict(row) if row else None
+    return _cn(row) if row else None
 
 
 def get_today_news():
     today = date.today().isoformat()
     conn = _connect()
     rows = conn.execute(
-        "SELECT id, title, url, source, summary, published_at as time FROM news WHERE date = ? ORDER BY time DESC",
+        "SELECT id, title, title_cn, url, source, summary, published_at as time"
+        " FROM news WHERE date = ? ORDER BY time DESC",
         (today,),
     ).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [_cn(r) for r in rows]
 
 
 def get_news_by_url(url):

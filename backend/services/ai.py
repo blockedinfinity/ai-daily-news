@@ -43,6 +43,59 @@ def parse_batch_result(text):
     return data.get("items", []), data.get("daily_digest", "")
 
 
+def _is_english(text):
+    """检测文本是否为英文（>50% 的字母字符是 ASCII）。"""
+    alpha = [c for c in text if c.isalpha()]
+    if not alpha:
+        return False
+    en = sum(1 for c in alpha if c.isascii())
+    return en / len(alpha) > 0.5
+
+
+def batch_translate(items):
+    """批量翻译英文新闻为中文。为 items 添加 title_cn/content_cn 字段。"""
+    en_idx = [i for i, item in enumerate(items) if _is_english(item.get("title", "") + item.get("content", ""))]
+
+    if not en_idx:
+        for item in items:
+            item["title_cn"] = item.get("title", "")
+            item["content_cn"] = item.get("content", "")
+        return items
+
+    lines = []
+    for i in en_idx:
+        item = items[i]
+        lines.append(f"[{i}] Title: {item['title']}\nContent: {(item.get('content', '') or '')[:800]}")
+
+    prompt = (
+        "Translate the following English AI news to Chinese.\n"
+        "Rules:\n"
+        "- Keep technical terms (GPT-5, MoE, Transformer, LLM, etc.) unchanged\n"
+        "- Keep company/product/model names unchanged\n"
+        "- Output natural Chinese\n\n"
+        + "\n\n---\n\n".join(lines)
+        + "\n\nReturn JSON array only: [{\"index\": 0, \"title_cn\": \"...\", \"content_cn\": \"...\"}, ...]"
+    )
+
+    try:
+        response = deepseek_call(prompt, system="Professional translator for AI/tech content.", temperature=0.1)
+        text = response.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        translations = json.loads(text)
+        tmap = {t["index"]: t for t in translations}
+    except Exception as e:
+        logger.warning("翻译失败: %s", e)
+        tmap = {}
+
+    for i, item in enumerate(items):
+        if i in en_idx and i in tmap:
+            item["title_cn"] = tmap[i].get("title_cn", item["title"])
+            item["content_cn"] = tmap[i].get("content_cn", item.get("content", ""))
+        else:
+            item["title_cn"] = item.get("title", "")
+            item["content_cn"] = item.get("content", "")
+    return items
+
+
 def batch_summarize(news_list):
     """批量总结：一次 DeepSeek 调用，返回 (items_with_summary, daily_digest)。"""
     if not news_list:
