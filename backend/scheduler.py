@@ -1,6 +1,7 @@
 """定时任务 —— 核心管道：RSS 抓取 → 去重 → AI 批量总结 → 写入数据库。"""
 
 import logging
+import threading
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -30,7 +31,7 @@ def start_scheduler(app):
     scheduler.start()
     logger.info("定时任务已启动（每天执行一次）")
 
-    # 启动后立即执行一次，避免首次部署后 24h 空窗
-    _job()
+    # 后台线程执行首次任务，避免阻塞 WSGI 启动
+    threading.Thread(target=_job, daemon=True).start()
 
     return scheduler
