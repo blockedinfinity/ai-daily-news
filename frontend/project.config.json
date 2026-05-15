@@ -1,59 +1,34 @@
 {
-  "description": "AI Daily News - 每日AI新闻摘要",
-  "packOptions": {
-    "ignore": [],
-    "include": []
-  },
   "setting": {
-    "bundle": false,
-    "userConfirmedBundleSwitch": false,
-    "urlCheck": false,
-    "scopeDataCheck": false,
-    "coverView": true,
     "es6": true,
-    "postcss": true,
-    "compileHotReLoad": false,
-    "lazyloadPlaceholderEnable": false,
-    "preloadBackgroundData": false,
-    "minified": true,
-    "autoAudits": false,
-    "newFeature": false,
+    "postcss": false,
+    "compileWorklet": false,
+    "minified": false,
     "uglifyFileName": false,
     "uploadWithSourceMap": true,
-    "useIsolateContext": true,
-    "nodeModules": false,
     "enhance": true,
-    "useMultiFrameRuntime": true,
-    "useApiHook": true,
-    "useApiHostProcess": true,
-    "showShadowRootInWxmlPanel": true,
     "packNpmManually": false,
-    "enableEngp": false,
     "packNpmRelationList": [],
     "minifyWXSS": true,
-    "showES6CompileOption": false,
     "minifyWXML": true,
-    "babelSetting": {
-      "ignore": [],
-      "disablePlugins": [],
-      "outputPath": ""
-    },
-    "compileWorklet": false,
     "localPlugins": false,
     "disableUseStrict": false,
     "useCompilerPlugins": false,
     "condition": false,
     "swc": false,
-    "disableSWC": true
+    "disableSWC": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
   },
   "compileType": "miniprogram",
-  "libVersion": "3.7.10",
-  "appid": "wxc58f93782f3a8e7c",
-  "projectname": "ai-daily-news",
-  "condition": {},
-  "editorSetting": {
-    "tabIndent": "insertSpaces",
-    "tabSize": 2
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
   },
-  "simulatorPluginLibVersion": {}
+  "appid": "wxc58f93782f3a8e7c",
+  "editorSetting": {}
 }
