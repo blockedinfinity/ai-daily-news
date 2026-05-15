@@ -1,7 +1,6 @@
-"""定时任务 —— 纯 APScheduler，不依赖 threading。"""
+"""定时任务 —— 纯 APScheduler。"""
 
 import logging
-from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -29,6 +28,4 @@ def start_scheduler(app):
     scheduler.add_job(_job, "interval", hours=24, id="daily_news", replace_existing=True)
     scheduler.start()
     logger.info("定时任务已启动（每天执行一次）")
-    # 用 APScheduler 的 date 触发器立即执行一次，不依赖 threading
-    scheduler.add_job(_job, "date", run_date=datetime.now())
     return scheduler

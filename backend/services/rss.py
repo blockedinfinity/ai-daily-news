@@ -2,6 +2,7 @@
 
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from time import mktime
 
@@ -10,7 +11,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-REQUEST_TIMEOUT = 15
+REQUEST_TIMEOUT = 10
 PER_SOURCE_LIMIT = 6
 MAX_CONTENT_LENGTH = 2000
 
@@ -95,9 +96,16 @@ def fetch_source(source):
 
 
 def fetch_news():
-    """抓取所有 RSS 源。返回 [dict, ...]，每条含 title/url/source/content/published_at。"""
+    """并行抓取所有 RSS 源。返回 [dict, ...]，每条含 title/url/source/content/published_at。"""
     all_news = []
-    for s in SOURCES:
-        all_news.extend(fetch_source(s))
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        fut_map = {pool.submit(fetch_source, s): s for s in SOURCES}
+        for future in as_completed(fut_map, timeout=25):
+            try:
+                items = future.result()
+                all_news.extend(items)
+            except Exception as e:
+                s = fut_map[future]
+                logger.warning("抓取失败 %s: %s", s["name"], e)
     logger.info("本次共抓取 %d 条新闻", len(all_news))
     return all_news
