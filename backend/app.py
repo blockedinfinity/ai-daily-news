@@ -171,10 +171,12 @@ def generate_summary_route():
 # 确保 WSGI 导入时也初始化数据库
 db.init_db()
 
-if __name__ == "__main__":
-    from scheduler import start_scheduler
+# PythonAnywhere WSGI 导入时启动调度器
+from scheduler import start_scheduler
 
-    scheduler = start_scheduler(app)
+scheduler = start_scheduler(app)
+
+if __name__ == "__main__":
     try:
         app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
     finally:
