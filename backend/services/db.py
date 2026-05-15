@@ -118,7 +118,7 @@ def get_today_news():
     today = date.today().isoformat()
     conn = _connect()
     rows = conn.execute(
-        "SELECT id, title, url, summary, published_at as time FROM news WHERE date = ? ORDER BY time DESC",
+        "SELECT id, title, url, source, summary, published_at as time FROM news WHERE date = ? ORDER BY time DESC",
         (today,),
     ).fetchall()
     conn.close()
