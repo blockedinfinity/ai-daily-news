@@ -1,6 +1,6 @@
 App({
   globalData: {
-    baseUrl: "http://localhost:5000/api",
+    baseUrl: "https://d9225de577db275d-114-103-210-63.serveousercontent.com/api",
     today: "",
   },
 
