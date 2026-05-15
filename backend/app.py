@@ -168,10 +168,12 @@ def generate_summary_route():
 
 # ── startup ──────────────────────────────────────────────────
 
+# 确保 WSGI 导入时也初始化数据库
+db.init_db()
+
 if __name__ == "__main__":
     from scheduler import start_scheduler
 
-    db.init_db()
     scheduler = start_scheduler(app)
     try:
         app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
