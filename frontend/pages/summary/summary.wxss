@@ -23,102 +23,20 @@
   display: block;
 }
 
-/* ===== 日期选择器（与新闻页一致） ===== */
-.date-picker {
+/* ===== 日期标签（静态，无下拉） ===== */
+.date-tag {
   margin-bottom: 20rpx;
-  position: relative;
 }
 
-.date-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18rpx 24rpx;
-  background: #fff;
-  border-radius: 12rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-}
-
-.date-trigger-left {
-  display: flex;
-  align-items: baseline;
-}
-
-.date-trigger-label {
+.date-tag-text {
+  display: inline-block;
   font-size: 30rpx;
   font-weight: 600;
   color: #1a73e8;
-}
-
-.date-trigger-count {
-  font-size: 22rpx;
-  color: #999;
-  margin-left: 12rpx;
-}
-
-.date-trigger-arrow {
-  font-size: 28rpx;
-  color: #999;
-}
-
-.date-trigger-arrow.expanded {
-  transform: rotate(180deg);
-}
-
-.date-dropdown {
-  position: relative;
-  z-index: 100;
-}
-
-.date-dropdown-mask {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 99;
-}
-
-.date-dropdown-list {
-  display: flex;
-  flex-direction: column;
+  padding: 18rpx 28rpx;
   background: #fff;
   border-radius: 12rpx;
-  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.12);
-  margin-top: 8rpx;
-  overflow: hidden;
-}
-
-.date-dropdown-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 28rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.date-dropdown-item:last-child {
-  border-bottom: none;
-}
-
-.date-dropdown-item.active {
-  background: #f0f4ff;
-}
-
-.date-dropdown-text {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
-}
-
-.date-dropdown-item.active .date-dropdown-text {
-  color: #1a73e8;
-  font-weight: 600;
-}
-
-.date-dropdown-count {
-  font-size: 22rpx;
-  color: #999;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .loading,

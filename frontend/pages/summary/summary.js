@@ -2,11 +2,8 @@ import { getAvailableDates, getSummary, generateSummary } from "../../utils/api"
 
 Page({
   data: {
-    dates: [],
     currentDate: "",
     currentLabel: "今天",
-    currentCount: 0,
-    showDates: false,
     content: "",
     loading: true,
     noNews: false,
@@ -17,35 +14,21 @@ Page({
     this.loadDates();
   },
 
-  toggleDates() {
-    this.setData({ showDates: !this.data.showDates });
-  },
-
   async loadDates() {
     try {
       const dates = await getAvailableDates();
       const today = getApp().globalData.today;
 
-      const formatted = dates.map((d) => ({
-        ...d,
-        label: this._formatLabel(d.date, today),
-      }));
-
-      const currentDate = formatted.length > 0 ? formatted[0].date : today;
-      const current = formatted.find((d) => d.date === currentDate);
+      // 只取今天
+      const todayItem = dates.find((d) => d.date === today);
+      const currentDate = todayItem ? todayItem.date : (dates.length > 0 ? dates[0].date : today);
 
       this.setData({
-        dates: formatted,
         currentDate,
-        currentLabel: current ? current.label : "今天",
-        currentCount: current ? (current.count || 0) : 0,
+        currentLabel: this._formatLabel(currentDate, today),
       });
 
-      if (this.data.currentDate) {
-        this.loadSummary(this.data.currentDate);
-      } else {
-        this.setData({ loading: false, noNews: true });
-      }
+      this.loadSummary(currentDate);
     } catch {
       this.setData({ loading: false });
     }
@@ -65,22 +48,6 @@ Page({
         this.setData({ loading: false, noNews: true });
       }
     }
-  },
-
-  switchDate(e) {
-    const { date } = e.currentTarget.dataset;
-    if (date === this.data.currentDate) {
-      this.setData({ showDates: false });
-      return;
-    }
-    const target = this.data.dates.find((d) => d.date === date);
-    this.setData({
-      currentDate: date,
-      currentLabel: target ? target.label : date,
-      currentCount: target ? (target.count || 0) : 0,
-      showDates: false,
-    });
-    this.loadSummary(date);
   },
 
   async generate() {
