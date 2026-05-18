@@ -222,26 +222,32 @@ def trigger_fetch():
         # 第二步：去重
         filtered = dedup.filter_new(news_list)
         step["new"] = len(filtered)
+
+        # 先入库原始新闻（无翻译无摘要），确保不丢数据
+        if filtered:
+            count = db.save_news(filtered, "")
+            step["saved_raw"] = count
+
         if not filtered:
             return success(step, f"无新新闻（共 {len(news_list)} 条重复）")
 
-        # 第三步：翻译
+        # 第三步：翻译（可能超时）
         try:
             translated = batch_translate(filtered)
             step["translated"] = len(translated)
         except Exception as e:
             step["translate_error"] = str(e)
-            translated = filtered  # 翻译失败也继续
+            return success(step, f"入库 {step.get('saved_raw', 0)} 条（翻译失败）")
 
-        # 第四步：摘要
+        # 第四步：摘要（可能超时）
         try:
             summarized, digest = batch_summarize(translated)
             step["summarized"] = len(summarized)
         except Exception as e:
             step["summarize_error"] = str(e)
-            summarized = translated  # 摘要失败也继续
+            summarized = translated
 
-        # 第五步：入库
+        # 第五步：更新入库（含翻译和摘要）
         count = db.save_news(summarized, digest)
         step["saved"] = count
         return success(step, f"完成，入库 {count} 条")
