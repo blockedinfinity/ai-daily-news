@@ -70,7 +70,7 @@ Page({
     try {
       const result = await generateSummary(date);
       this.setData({ content: result.content, generating: false });
-      wx.showToast({ title: "摘要生成成功", icon: "success" });
+      wx.showToast({ title: "总结生成成功", icon: "success" });
     } catch (e) {
       this.setData({ generating: false });
       wx.showToast({ title: e.msg || "生成失败", icon: "none" });

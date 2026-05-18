@@ -1,7 +1,7 @@
 <view class="page">
   <view class="header">
-    <text class="title">AI 每日摘要</text>
-    <text class="subtitle">由 DeepSeek AI 自动生成</text>
+    <text class="title">AI 每日总结</text>
+    <text class="subtitle">从今日精华中提炼最重要的洞察</text>
   </view>
 
   <view class="date-picker" wx:if="{{dates.length > 0}}">
@@ -36,9 +36,9 @@
 
   <view class="no-summary" wx:elif="{{!loading && !content && !noNews}}">
     <text class="icon">🤖</text>
-    <text class="text">该日期还没有 AI 摘要</text>
+    <text class="text">该日期还没有 AI 总结</text>
     <button class="generate-btn" bind:tap="generate" loading="{{generating}}">
-      {{generating ? '生成中...' : '生成摘要'}}
+      {{generating ? '生成中...' : '生成总结'}}
     </button>
   </view>
 </view>
