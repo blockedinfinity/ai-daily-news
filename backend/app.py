@@ -64,28 +64,7 @@ def list_news():
 
 @app.route("/api/news/today", methods=["GET"])
 def today_news():
-    items = db.get_today_news()
-    # 数据库为空时，自动触发后台抓取
-    if not items:
-        import threading
-        def _auto_fetch():
-            try:
-                from services import dedup, rss
-                from services.ai import batch_summarize, batch_translate
-                news_list = rss.fetch_news()
-                filtered = dedup.filter_new(news_list)
-                if not filtered:
-                    app.logger.info("[自动抓取] 无新新闻")
-                    return
-                translated = batch_translate(filtered)
-                summarized, digest = batch_summarize(translated)
-                count = db.save_news(summarized, digest)
-                app.logger.info("[自动抓取] 完成，入库 %d 条", count)
-            except Exception as e:
-                app.logger.error("[自动抓取] 失败: %s", e, exc_info=True)
-        threading.Thread(target=_auto_fetch, daemon=True).start()
-        return success([], "数据库为空，已自动触发抓取，请 1-2 分钟后刷新")
-    return success(items)
+    return success(db.get_today_news())
 
 
 @app.route("/api/news/<int:news_id>", methods=["GET"])
@@ -187,33 +166,29 @@ def generate_summary_route():
         return error(str(e), code=500, status=500)
 
 
-# ── fetch (手动触发 RSS 抓取，异步) ─────────────────────────
+# ── fetch (供 Render Cron Job 或手动调用) ────────────────────
+# 注意：此端点同步执行，RSS 抓取 + AI 翻译/摘要 可能超过 30s。
+# Render Cron Job 请使用 fetch_once.py（无超时限制）。
+# 此端点仅用于快速测试。
 
 @app.route("/api/fetch", methods=["GET", "POST"])
 def trigger_fetch():
-    """手动触发 RSS 抓取：立即返回，后台线程执行。支持 GET（浏览器直接访问）和 POST。"""
-    import threading
+    """同步触发 RSS 抓取（可能超时，仅供测试）。"""
+    try:
+        from services import dedup, rss
+        from services.ai import batch_summarize, batch_translate
 
-    def _run():
-        try:
-            from services import dedup, rss, db
-            from services.ai import batch_summarize, batch_translate
-
-            news_list = rss.fetch_news()
-            filtered = dedup.filter_new(news_list)
-            if not filtered:
-                app.logger.info("[手动抓取] 无新新闻 (%d 条重复)", len(news_list))
-                return
-            app.logger.info("[手动抓取] 新 %d 条，开始翻译...", len(filtered))
-            translated = batch_translate(filtered)
-            summarized, digest = batch_summarize(translated)
-            count = db.save_news(summarized, digest)
-            app.logger.info("[手动抓取] 完成，入库 %d 条", count)
-        except Exception as e:
-            app.logger.error("[手动抓取] 失败: %s", e, exc_info=True)
-
-    threading.Thread(target=_run, daemon=True).start()
-    return success(None, "抓取任务已提交，请 1-2 分钟后刷新查看")
+        news_list = rss.fetch_news()
+        filtered = dedup.filter_new(news_list)
+        if not filtered:
+            return success({"fetched": 0, "new": 0}, f"无新新闻（共 {len(news_list)} 条重复）")
+        translated = batch_translate(filtered)
+        summarized, digest = batch_summarize(translated)
+        count = db.save_news(summarized, digest)
+        return success({"fetched": len(news_list), "new": count}, f"入库 {count} 条")
+    except Exception as e:
+        app.logger.error("[同步抓取] 失败: %s", e, exc_info=True)
+        return error(f"抓取失败: {e}", code=500, status=500)
 
 
 # ── startup ──────────────────────────────────────────────────

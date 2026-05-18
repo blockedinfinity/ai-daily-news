@@ -1,12 +1,17 @@
-"""数据库操作 —— 所有 SQL 集中于此，直接管理连接，不依赖 Flask g。"""
+"""数据库操作 —— PostgreSQL（Render / Neon / Supabase 等兼容）。
+
+通过环境变量 DATABASE_URL 连接，无需本地 SQLite 文件。
+示例：postgresql://user:pass@host:5432/dbname
+"""
 
 import json
 import os
-import sqlite3
 from datetime import date
 
-DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-DB_PATH = os.path.join(DB_DIR, "news.db")
+import psycopg2
+import psycopg2.extras
+
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 
 def _cn(d):
@@ -20,48 +25,51 @@ def _cn(d):
 
 
 def _connect():
-    os.makedirs(DB_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL 环境变量未设置")
+    conn = psycopg2.connect(DATABASE_URL)
+    conn.autocommit = False
     return conn
 
 
 def init_db():
     conn = _connect()
-    conn.executescript("""
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS news (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            id          SERIAL PRIMARY KEY,
             title       TEXT NOT NULL,
-            url         TEXT,
+            url         TEXT DEFAULT '',
             source      TEXT DEFAULT '',
             content     TEXT DEFAULT '',
             summary     TEXT DEFAULT '',
-            published_at DATETIME,
+            title_cn    TEXT DEFAULT '',
+            content_cn  TEXT DEFAULT '',
+            published_at TIMESTAMP,
             date        TEXT NOT NULL,
-            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE TABLE IF NOT EXISTS daily_summary (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            id          SERIAL PRIMARY KEY,
             date        TEXT UNIQUE NOT NULL,
             content     TEXT NOT NULL,
             news_ids    TEXT DEFAULT '[]',
-            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
-        CREATE INDEX IF NOT EXISTS idx_news_date ON news(date);
-        CREATE INDEX IF NOT EXISTS idx_news_url ON news(url);
-        CREATE INDEX IF NOT EXISTS idx_summary_date ON daily_summary(date);
     """)
-    # 迁移：新增翻译列（幂等，忽略已存在错误）
-    for col in ("title_cn", "content_cn"):
+    # 创建索引（忽略已存在）
+    for idx_sql in [
+        "CREATE INDEX IF NOT EXISTS idx_news_date ON news(date)",
+        "CREATE INDEX IF NOT EXISTS idx_news_url ON news(url)",
+        "CREATE INDEX IF NOT EXISTS idx_summary_date ON daily_summary(date)",
+    ]:
         try:
-            conn.execute(f"ALTER TABLE news ADD COLUMN {col} TEXT DEFAULT ''")
-        except sqlite3.OperationalError:
+            cur.execute(idx_sql)
+        except psycopg2.Error:
             pass
     conn.commit()
+    cur.close()
     conn.close()
 
 
@@ -72,20 +80,21 @@ def save_news(items, daily_digest=""):
     today = date.today().isoformat()
     count = 0
     conn = _connect()
+    cur = conn.cursor()
     for item in items:
         url = item.get("url", "")
         title = item.get("title", "")
         if url:
-            exists = conn.execute("SELECT 1 FROM news WHERE url = ?", (url,)).fetchone()
-            if exists:
+            cur.execute("SELECT 1 FROM news WHERE url = %s", (url,))
+            if cur.fetchone():
                 continue
         if title:
-            exists = conn.execute("SELECT 1 FROM news WHERE title = ?", (title,)).fetchone()
-            if exists:
+            cur.execute("SELECT 1 FROM news WHERE title = %s", (title,))
+            if cur.fetchone():
                 continue
-        conn.execute(
+        cur.execute(
             """INSERT INTO news (title, url, source, content, summary, title_cn, content_cn, published_at, date)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (title, url, item.get("source", ""), item.get("content", ""),
              item.get("summary", ""), item.get("title_cn", ""), item.get("content_cn", ""),
              item.get("published_at", today), today),
@@ -93,17 +102,19 @@ def save_news(items, daily_digest=""):
         count += 1
 
     if daily_digest:
-        news_ids = conn.execute(
-            "SELECT id FROM news WHERE date = ? ORDER BY id", (today,)
-        ).fetchall()
-        ids_json = json.dumps([r["id"] for r in news_ids], ensure_ascii=False)
-        conn.execute(
-            """INSERT INTO daily_summary (date, content, news_ids) VALUES (?, ?, ?)
-               ON CONFLICT(date) DO UPDATE SET content=excluded.content, news_ids=excluded.news_ids""",
+        cur.execute(
+            "SELECT id FROM news WHERE date = %s ORDER BY id", (today,)
+        )
+        ids = [r[0] for r in cur.fetchall()]
+        ids_json = json.dumps(ids, ensure_ascii=False)
+        cur.execute(
+            """INSERT INTO daily_summary (date, content, news_ids) VALUES (%s, %s, %s)
+               ON CONFLICT(date) DO UPDATE SET content=EXCLUDED.content, news_ids=EXCLUDED.news_ids""",
             (today, daily_digest, ids_json),
         )
 
     conn.commit()
+    cur.close()
     conn.close()
     return count
 
@@ -112,21 +123,26 @@ def save_news(items, daily_digest=""):
 
 def get_news_by_date(date_str, page=1, per_page=20):
     conn = _connect()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     offset = (page - 1) * per_page
-    rows = conn.execute(
-        "SELECT * FROM news WHERE date = ? ORDER BY published_at DESC LIMIT ? OFFSET ?",
+    cur.execute(
+        "SELECT * FROM news WHERE date = %s ORDER BY published_at DESC LIMIT %s OFFSET %s",
         (date_str, per_page, offset),
-    ).fetchall()
-    total = conn.execute(
-        "SELECT COUNT(*) FROM news WHERE date = ?", (date_str,)
-    ).fetchone()[0]
+    )
+    rows = cur.fetchall()
+    cur.execute("SELECT COUNT(*) FROM news WHERE date = %s", (date_str,))
+    total = cur.fetchone()["count"]
+    cur.close()
     conn.close()
     return [_cn(r) for r in rows], total
 
 
 def get_news(news_id):
     conn = _connect()
-    row = conn.execute("SELECT * FROM news WHERE id = ?", (news_id,)).fetchone()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT * FROM news WHERE id = %s", (news_id,))
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     return _cn(row) if row else None
 
@@ -134,60 +150,79 @@ def get_news(news_id):
 def get_today_news():
     today = date.today().isoformat()
     conn = _connect()
-    rows = conn.execute(
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
         "SELECT id, title, title_cn, url, source, summary, published_at as time"
-        " FROM news WHERE date = ? ORDER BY time DESC",
+        " FROM news WHERE date = %s ORDER BY time DESC",
         (today,),
-    ).fetchall()
+    )
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
     return [_cn(r) for r in rows]
 
 
 def get_news_by_url(url):
     conn = _connect()
-    row = conn.execute("SELECT id FROM news WHERE url = ?", (url,)).fetchone()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT id FROM news WHERE url = %s", (url,))
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     return dict(row) if row else None
 
 
 def get_news_by_title(title):
     conn = _connect()
-    row = conn.execute("SELECT id FROM news WHERE title = ?", (title,)).fetchone()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT id FROM news WHERE title = %s", (title,))
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     return dict(row) if row else None
 
 
 def create_news(title, date_str, url="", source="", content="", summary="", published_at=None):
     conn = _connect()
-    cur = conn.execute(
+    cur = conn.cursor()
+    cur.execute(
         """INSERT INTO news (title, url, source, content, summary, published_at, date)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
         (title, url, source, content, summary, published_at or date_str, date_str),
     )
+    nid = cur.fetchone()[0]
     conn.commit()
+    cur.close()
     conn.close()
-    return cur.lastrowid
+    return nid
 
 
 def update_news_summary(news_id, summary):
     conn = _connect()
-    conn.execute("UPDATE news SET summary = ? WHERE id = ?", (summary, news_id))
+    cur = conn.cursor()
+    cur.execute("UPDATE news SET summary = %s WHERE id = %s", (summary, news_id))
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def delete_news(news_id):
     conn = _connect()
-    conn.execute("DELETE FROM news WHERE id = ?", (news_id,))
+    cur = conn.cursor()
+    cur.execute("DELETE FROM news WHERE id = %s", (news_id,))
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def get_available_dates():
     conn = _connect()
-    rows = conn.execute(
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
         "SELECT date, COUNT(*) as count FROM news GROUP BY date ORDER BY date DESC"
-    ).fetchall()
+    )
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -196,9 +231,12 @@ def get_available_dates():
 
 def get_summary(date_str):
     conn = _connect()
-    row = conn.execute(
-        "SELECT * FROM daily_summary WHERE date = ?", (date_str,)
-    ).fetchone()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        "SELECT * FROM daily_summary WHERE date = %s", (date_str,)
+    )
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     if row:
         d = dict(row)
@@ -209,20 +247,25 @@ def get_summary(date_str):
 
 def upsert_summary(date_str, content, news_ids_json):
     conn = _connect()
-    conn.execute(
+    cur = conn.cursor()
+    cur.execute(
         """INSERT INTO daily_summary (date, content, news_ids)
-           VALUES (?, ?, ?)
-           ON CONFLICT(date) DO UPDATE SET content=excluded.content, news_ids=excluded.news_ids""",
+           VALUES (%s, %s, %s)
+           ON CONFLICT(date) DO UPDATE SET content=EXCLUDED.content, news_ids=EXCLUDED.news_ids""",
         (date_str, content, news_ids_json),
     )
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def has_summary(date_str):
     conn = _connect()
-    row = conn.execute(
-        "SELECT 1 FROM daily_summary WHERE date = ?", (date_str,)
-    ).fetchone()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT 1 FROM daily_summary WHERE date = %s", (date_str,)
+    )
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     return row is not None
