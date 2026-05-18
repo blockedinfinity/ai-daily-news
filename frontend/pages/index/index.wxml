@@ -1,14 +1,7 @@
 <view class="page">
   <view class="header">
-    <view class="header-top">
-      <view class="title-group">
-        <text class="title">AI Daily News</text>
-        <text class="subtitle">每日 AI 行业新闻速览</text>
-      </view>
-      <view class="summary-btn" bind:tap="goSummary">
-        <text class="summary-btn-text">AI 日报</text>
-      </view>
-    </view>
+    <text class="title">AI Daily News</text>
+    <text class="subtitle">每日 AI 行业新闻速览</text>
   </view>
 
   <!-- 加载提示 -->
