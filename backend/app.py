@@ -172,6 +172,29 @@ def generate_summary_route():
     except RuntimeError as e:
         return error(str(e), code=500, status=500)
 
+@app.route("/api/cleanup", methods=["POST"])
+def cleanup_db():
+    """一次性清理：删除无摘要的旧数据，只保留精选新闻。用完即删。"""
+    try:
+        conn = db._connect()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM news WHERE summary IS NULL OR summary = ''")
+        deleted = cur.rowcount
+        cur.execute("SELECT COUNT(*) FROM news")
+        remaining = cur.fetchone()[0]
+        cur.execute("SELECT id, title, title_cn, LEFT(summary, 50) AS summary_preview FROM news ORDER BY id")
+        rows = cur.fetchall()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return success({
+            "deleted": deleted,
+            "remaining": remaining,
+            "kept": [{"id": r[0], "title": r[1], "title_cn": r[2], "summary": r[3]} for r in rows],
+        }, f"保留 {remaining} 条精选新闻")
+    except Exception as e:
+        return error(str(e), code=500, status=500)
+
 
 # ── fetch (供 Render Cron Job 或手动调用) ────────────────────
 # 注意：此端点同步执行，RSS 抓取 + AI 翻译/摘要 可能超过 30s。
