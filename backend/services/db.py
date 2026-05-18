@@ -224,7 +224,7 @@ def get_today_news():
     conn = _connect()
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute(
+        cur.execute(
                 "SELECT id, title, title_cn, url, source, summary, image_url, published_at as time"
                 " FROM news WHERE date = %s ORDER BY time DESC",
                 (today,),
