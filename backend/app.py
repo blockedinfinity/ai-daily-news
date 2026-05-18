@@ -173,6 +173,30 @@ def generate_summary_route():
         return error(str(e), code=500, status=500)
 
 
+@app.route("/api/cleanup", methods=["POST"])
+def cleanup_db():
+    """一次性清理：删除测试数据，保留今天正式新闻。用完即删。"""
+    try:
+        conn = db._connect()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM news WHERE title = 'test' OR source = 'debug'")
+        test_deleted = cur.rowcount
+        cur.execute("DELETE FROM daily_summary WHERE content LIKE '%test%'")
+        summary_deleted = cur.rowcount
+        cur.execute("SELECT date, COUNT(*) AS cnt FROM news GROUP BY date ORDER BY date DESC")
+        stats = cur.fetchall()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return success({
+            "test_deleted": test_deleted,
+            "summary_deleted": summary_deleted,
+            "dates": [{"date": r[0], "count": r[1]} for r in stats],
+        }, "清理完成")
+    except Exception as e:
+        return error(str(e), code=500, status=500)
+
+
 # ── fetch (供 Render Cron Job 或手动调用) ────────────────────
 # 注意：此端点同步执行，RSS 抓取 + AI 翻译/摘要 可能超过 30s。
 # Render Cron Job 请使用 fetch_once.py（无超时限制）。
