@@ -15,6 +15,9 @@ REQUEST_TIMEOUT = 10
 PER_SOURCE_LIMIT = 6
 MAX_CONTENT_LENGTH = 2000
 
+# PythonAnywhere 环境可能配置了代理，抓 RSS 时需要禁用
+NO_PROXY = {"http": None, "https": None}
+
 SOURCES = [
     # 中文源
     {"name": "量子位", "url": "https://www.qbitai.com/feed"},
@@ -63,6 +66,7 @@ def fetch_source(source):
             feed_url,
             timeout=REQUEST_TIMEOUT,
             headers={"User-Agent": "Mozilla/5.0 (compatible; AI-Daily-News/1.0)"},
+            proxies=NO_PROXY,
         )
         resp.raise_for_status()
     except requests.RequestException as e:
