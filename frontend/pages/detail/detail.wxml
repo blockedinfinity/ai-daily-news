@@ -16,9 +16,13 @@
 
     <view class="divider"></view>
 
-    <!-- 完整摘要 -->
+    <!-- 完整摘要（用 view 包裹实现换行） -->
     <text class="section-label" wx:if="{{news.summary}}">AI 摘要</text>
-    <text class="summary" wx:if="{{news.summary}}">{{news.summary}}</text>
+    <view class="summary-block" wx:if="{{news.summary}}">
+      <block wx:for="{{news.summary.split('\n')}}" wx:key="index">
+        <text class="summary-line" wx:if="{{item.trim()}}">{{item}}</text>
+      </block>
+    </view>
 
     <!-- 正文 -->
     <text class="section-label" wx:if="{{news.content}}">原文</text>

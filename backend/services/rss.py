@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 REQUEST_TIMEOUT = 15
 PER_SOURCE_LIMIT = 10
 MAX_CONTENT_LENGTH = 2000
-TARGET_DAILY = 5  # 每日目标精选数量
 
 SOURCES = [
     # 中文源
@@ -86,16 +85,14 @@ def fetch_source(source):
         # 提取热度信号（Hacker News 的 points/comments）
         score = 0
         comments = 0
-        if hasattr(entry, "hr_points") and entry.hr_points:
-            try:
-                score = int(entry.hr_points)
-            except (ValueError, TypeError):
-                pass
-        if hasattr(entry, "hr_comments") and entry.hr_comments:
-            try:
-                comments = int(entry.hr_comments)
-            except (ValueError, TypeError):
-                pass
+        try:
+            score = int(entry.get("hr_points") or 0)
+        except (ValueError, TypeError):
+            pass
+        try:
+            comments = int(entry.get("hr_comments") or 0)
+        except (ValueError, TypeError):
+            pass
 
         items.append(
             {

@@ -1,4 +1,4 @@
-"""API 服务 —— 只读优先，纯 DB 查询，不触发 RSS/AI。"""
+"""API 服务 —— 小程序后端。"""
 
 import json
 import logging
@@ -17,7 +17,13 @@ from services.ai import summarize_news
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# CORS: 只允许小程序请求和本地开发
+_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
+CORS(app, resources={r"/api/*": {"origins": _ALLOWED_ORIGINS.split(",") if _ALLOWED_ORIGINS != "*" else "*"}})
+
+# 内部操作密钥（防止外部调用 /api/fetch 等端点）
+_INTERNAL_KEY = os.getenv("INTERNAL_KEY", "")
 
 
 # ── helpers ───────────────────────────────────────────────────
@@ -31,6 +37,16 @@ def success(data=None, message="ok"):
 
 def error(message="error", code=-1, status=400):
     return jsonify({"code": code, "message": message}), status
+
+
+def _check_internal():
+    """校验内部操作密钥，防止外部调用管理端点。未设置 INTERNAL_KEY 时跳过检查。"""
+    if not _INTERNAL_KEY:
+        return None
+    key = request.headers.get("X-Internal-Key", "") or request.args.get("key", "")
+    if key != _INTERNAL_KEY:
+        return error("无权限", code=403, status=403)
+    return None
 
 
 # ── error handler ─────────────────────────────────────────────
@@ -50,7 +66,7 @@ def health():
     db_ok = False
     try:
         conn = db._connect()
-        conn.close()
+        db._putback(conn)
         db_ok = True
     except Exception:
         pass
@@ -84,6 +100,9 @@ def get_news(news_id):
 
 @app.route("/api/news", methods=["POST"])
 def create_news():
+    auth = _check_internal()
+    if auth:
+        return auth
     body = request.get_json(force=True)
     title = body.get("title", "").strip()
     date = body.get("date", "").strip()
@@ -108,6 +127,9 @@ def create_news():
 
 @app.route("/api/news/<int:news_id>", methods=["DELETE"])
 def delete_news(news_id):
+    auth = _check_internal()
+    if auth:
+        return auth
     db.delete_news(news_id)
     return success(None, "删除成功")
 
@@ -115,6 +137,9 @@ def delete_news(news_id):
 @app.route("/api/news/<int:news_id>/summarize", methods=["POST"])
 def summarize_news_route(news_id):
     """手动触发单条新闻 AI 摘要。"""
+    auth = _check_internal()
+    if auth:
+        return auth
     news = db.get_news(news_id)
     if not news:
         return error("新闻不存在", code=404, status=404)
@@ -156,6 +181,9 @@ def get_summary():
 @app.route("/api/summary/generate", methods=["POST"])
 def generate_summary_route():
     """手动触发某日日报摘要。"""
+    auth = _check_internal()
+    if auth:
+        return auth
     body = request.get_json(force=True) if request.is_json else {}
     date = body.get("date") or request.args.get("date", "")
     if not date:
@@ -173,15 +201,15 @@ def generate_summary_route():
         return error(str(e), code=500, status=500)
 
 
-# ── fetch (供 Render Cron Job 或手动调用) ────────────────────
-# 注意：此端点同步执行，RSS 抓取 + AI 翻译/摘要 可能超过 30s。
-# Render Cron Job 请使用 fetch_once.py（无超时限制）。
-# 此端点仅用于快速测试。
+# ── fetch (仅供内部测试) ────────────────────────────────────
+# 完整流程（含翻译+摘要）请使用 GitHub Actions fetch_once.py。
 
 @app.route("/api/fetch", methods=["GET", "POST"])
 def trigger_fetch():
-    """抓取 RSS + 精选 + 入库（快速测试用，翻译/摘要可能超 30s）。
-    完整流程（含翻译+摘要）请使用 Render Cron Job 调用 fetch_once.py。"""
+    """抓取 RSS + 精选 + 入库（仅供内部测试，完整流程走 GitHub Actions fetch_once.py）。"""
+    auth = _check_internal()
+    if auth:
+        return auth
     try:
         from services import rss, dedup
 
@@ -206,7 +234,7 @@ try:
 except Exception as e:
     app.logger.error("数据库初始化失败: %s", e)
 
-# Render + gunicorn 不兼容 APScheduler，已改用 Render Cron Job (fetch_once.py)
+# 已改用 GitHub Actions (fetch_once.py)
 # from scheduler import start_scheduler
 # scheduler = start_scheduler(app)
 

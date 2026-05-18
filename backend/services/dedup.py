@@ -18,25 +18,26 @@ def filter_new(items):
         return []
 
     conn = db._connect()
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
 
-    urls = [item["url"] for item in items if item.get("url")]
-    titles = [item["title"] for item in items if item.get("title")]
+        urls = [item["url"] for item in items if item.get("url")]
+        titles = [item["title"] for item in items if item.get("title")]
 
-    existing_urls = set()
-    existing_titles = set()
-    if urls:
-        cur.execute("SELECT url FROM news WHERE url = ANY(%s)", (urls,))
-        existing_urls = {r[0] for r in cur.fetchall()}
-    if titles:
-        cur.execute("SELECT title FROM news WHERE title = ANY(%s)", (titles,))
-        existing_titles = {r[0] for r in cur.fetchall()}
+        existing_urls = set()
+        existing_titles = set()
+        if urls:
+            cur.execute("SELECT url FROM news WHERE url = ANY(%s)", (urls,))
+            existing_urls = {r[0] for r in cur.fetchall()}
+        if titles:
+            cur.execute("SELECT title FROM news WHERE title = ANY(%s)", (titles,))
+            existing_titles = {r[0] for r in cur.fetchall()}
 
-    cur.close()
-    conn.close()
-
-    return [
-        item for item in items
-        if item.get("url", "") not in existing_urls
-        and item.get("title", "") not in existing_titles
-    ]
+        cur.close()
+        return [
+            item for item in items
+            if item.get("url", "") not in existing_urls
+            and item.get("title", "") not in existing_titles
+        ]
+    finally:
+        db._putback(conn)

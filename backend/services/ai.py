@@ -17,7 +17,10 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        _client = OpenAI(api_key=API_KEY, base_url=BASE_URL, timeout=30.0, max_retries=2)
+        try:
+            _client = OpenAI(api_key=API_KEY, base_url=BASE_URL, timeout=30.0, max_retries=2)
+        except Exception:
+            _client = None
     return _client
 
 
