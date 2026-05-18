@@ -238,10 +238,31 @@
 /* 列表底部 */
 .list-footer {
   text-align: center;
-  padding: 30rpx 0 20rpx;
+  padding: 30rpx 0 40rpx;
 }
 
 .list-footer-text {
   font-size: 24rpx;
   color: #bbb;
+}
+
+/* 加载更多 */
+.load-more {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0 8rpx;
+}
+
+.loading-spinner.small {
+  width: 32rpx;
+  height: 32rpx;
+  border-width: 3rpx;
+  margin-right: 16rpx;
+}
+
+.load-more-text {
+  font-size: 24rpx;
+  color: #999;
 }

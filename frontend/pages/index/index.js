@@ -1,6 +1,7 @@
 import { getNewsByDate, getAvailableDates } from "../../utils/api";
 
 const app = getApp();
+const PAGE_SIZE = 5;
 
 Page({
   data: {
@@ -9,14 +10,18 @@ Page({
     newsList: [],
     loading: true,
     error: "",
+    displayCount: PAGE_SIZE,
+    allLoaded: false,
+    loadingMore: false,
   },
+
+  _allItems: [],
 
   onLoad() {
     this.loadDates();
   },
 
   onShow() {
-    // 从详情页返回时刷新列表
     if (this.data.currentDate) {
       this.loadNews(this.data.currentDate, true);
     }
@@ -34,6 +39,11 @@ Page({
       wx.stopPullDownRefresh();
       wx.hideNavigationBarLoading();
     }
+  },
+
+  onReachBottom() {
+    if (this.data.allLoaded || this.data.loadingMore || this.data.loading) return;
+    this.loadMore();
   },
 
   async loadDates() {
@@ -63,14 +73,41 @@ Page({
 
     try {
       const result = await getNewsByDate(date);
-      // 限制最多显示 5 篇
-      const items = (result.items || []).slice(0, 5);
-      this.setData({ newsList: items, loading: false, error: "" });
+      this._allItems = result.items || [];
+      const displayCount = Math.min(PAGE_SIZE, this._allItems.length);
+      this.setData({
+        newsList: this._allItems.slice(0, displayCount),
+        displayCount,
+        allLoaded: displayCount >= this._allItems.length,
+        loading: false,
+        error: "",
+      });
     } catch {
       if (!silent) {
         this.setData({ error: "加载失败，请重试", loading: false });
       }
     }
+  },
+
+  loadMore() {
+    const nextCount = this.data.displayCount + PAGE_SIZE;
+    if (nextCount >= this._allItems.length) {
+      this.setData({
+        newsList: this._allItems,
+        displayCount: this._allItems.length,
+        allLoaded: true,
+      });
+      return;
+    }
+    this.setData({ loadingMore: true });
+    // 模拟少量延迟让用户感知到加载反馈
+    setTimeout(() => {
+      this.setData({
+        newsList: this._allItems.slice(0, nextCount),
+        displayCount: nextCount,
+        loadingMore: false,
+      });
+    }, 300);
   },
 
   switchDate(e) {
@@ -81,7 +118,7 @@ Page({
   },
 
   goDetail(e) {
-    const { id, title, summary, url } = e.currentTarget.dataset;
+    const { id } = e.currentTarget.dataset;
     wx.navigateTo({
       url: `/pages/detail/detail?id=${id}`,
     });

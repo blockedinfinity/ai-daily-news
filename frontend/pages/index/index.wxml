@@ -68,9 +68,20 @@
       </view>
     </view>
 
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{loadingMore}}">
+      <view class="loading-spinner small"></view>
+      <text class="load-more-text">加载更多...</text>
+    </view>
+
     <!-- 底部提示 -->
     <view class="list-footer">
-      <text class="list-footer-text">已显示 {{newsList.length}} 篇精选新闻</text>
+      <text class="list-footer-text" wx:if="{{allLoaded}}">
+        已加载全部 {{newsList.length}} 篇新闻
+      </text>
+      <text class="list-footer-text" wx:else>
+        上滑加载更多（已显示 {{newsList.length}} 篇）
+      </text>
     </view>
   </view>
 </view>
