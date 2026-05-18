@@ -166,6 +166,12 @@ def list_dates():
     return success(db.get_available_dates())
 
 
+@app.route("/api/summary-dates", methods=["GET"])
+def list_summary_dates():
+    """返回有 AI 总结的日期列表。"""
+    return success(db.get_summary_dates())
+
+
 # ── summary ───────────────────────────────────────────────────
 
 @app.route("/api/summary", methods=["GET"])

@@ -4,8 +4,26 @@
     <text class="subtitle">从今日精华中提炼最重要的洞察</text>
   </view>
 
-  <view class="date-tag" wx:if="{{currentLabel}}">
-    <text class="date-tag-text">{{currentLabel}}</text>
+  <view class="date-picker" wx:if="{{dates.length > 0}}">
+    <view class="date-trigger" bind:tap="toggleDates">
+      <text class="date-trigger-label">{{currentLabel}}</text>
+      <text class="date-trigger-arrow {{showDates ? 'expanded' : ''}}">▾</text>
+    </view>
+
+    <view class="date-dropdown" wx:if="{{showDates}}">
+      <view class="date-dropdown-mask" bind:tap="toggleDates"></view>
+      <view class="date-dropdown-list">
+        <view
+          wx:for="{{dates}}"
+          wx:key="date"
+          class="date-dropdown-item {{currentDate === item.date ? 'active' : ''}}"
+          bind:tap="switchDate"
+          data-date="{{item.date}}"
+        >
+          <text class="date-dropdown-text">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <view class="loading" wx:if="{{loading}}">

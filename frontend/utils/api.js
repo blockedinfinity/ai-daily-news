@@ -40,3 +40,6 @@ export const getSummary = (date) => request("GET", `/summary?date=${date}`);
 /** 触发生成某日 AI 摘要 */
 export const generateSummary = (date) =>
   request("POST", "/summary/generate", { date });
+
+/** 获取有 AI 总结的日期列表 */
+export const getSummaryDates = () => request("GET", "/summary-dates");

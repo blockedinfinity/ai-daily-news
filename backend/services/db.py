@@ -363,3 +363,17 @@ def has_summary(date_str):
         return row is not None
     finally:
         _putback(conn)
+
+
+def get_summary_dates():
+    """返回有 AI 总结的日期列表（按日期倒序）。"""
+    conn = _connect()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT date FROM daily_summary ORDER BY date DESC"
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        _putback(conn)
