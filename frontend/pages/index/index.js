@@ -23,10 +23,16 @@ Page({
   },
 
   onPullDownRefresh() {
+    wx.showNavigationBarLoading();
     if (this.data.currentDate) {
       this.loadNews(this.data.currentDate)
-        .then(() => wx.stopPullDownRefresh())
-        .catch(() => wx.stopPullDownRefresh());
+        .finally(() => {
+          wx.stopPullDownRefresh();
+          wx.hideNavigationBarLoading();
+        });
+    } else {
+      wx.stopPullDownRefresh();
+      wx.hideNavigationBarLoading();
     }
   },
 
