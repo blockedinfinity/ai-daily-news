@@ -33,13 +33,11 @@ Page({
     try {
       const data = await getNewsDetail(id);
       // 处理摘要：按行分割，去除空行
-      if (data.summary) {
-        const lines = data.summary
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        data.summaryLines = lines;
-      }
+      const lines = (data.summary || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      data.summaryLines = lines;
       this.setData({ news: data, loading: false });
     } catch {
       this.setData({ error: "加载失败，请重试", loading: false });

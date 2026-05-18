@@ -25,7 +25,7 @@
     <view class="divider"></view>
 
     <!-- AI 摘要 -->
-    <view class="summary-section" wx:if="{{news.summaryLines.length > 0}}">
+    <view class="summary-section" wx:if="{{news.summaryLines && news.summaryLines.length > 0}}">
       <view class="section-header">
         <view class="section-icon">🤖</view>
         <text class="section-label">AI 摘要</text>
@@ -42,19 +42,6 @@
           <text class="summary-text" wx:if="{{news.summaryLines.length > 1}}">{{item}}</text>
           <text class="summary-text single" wx:else>{{item}}</text>
         </view>
-      </view>
-    </view>
-
-    <!-- AI 摘要（兼容旧数据：没有 summaryLines 的情况） -->
-    <view class="summary-section" wx:elif="{{news.summary}}">
-      <view class="section-header">
-        <view class="section-icon">🤖</view>
-        <text class="section-label">AI 摘要</text>
-      </view>
-      <view class="summary-block">
-        <block wx:for="{{news.summary.split('\n')}}" wx:key="index">
-          <text class="summary-text single" wx:if="{{item.trim()}}">{{item}}</text>
-        </block>
       </view>
     </view>
 
