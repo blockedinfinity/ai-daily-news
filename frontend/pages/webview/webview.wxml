@@ -1,1 +1,32 @@
-<web-view src="{{url}}"></web-view>
+<view class="page">
+  <!-- 加载态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">正在打开网页...</text>
+  </view>
+
+  <!-- web-view 全屏显示 -->
+  <web-view
+    wx:if="{{url}}"
+    src="{{url}}"
+    bindmessage="onMessage"
+    binderror="onError"
+    bindload="onLoad"
+  ></web-view>
+
+  <!-- 错误兜底：复制链接 + 外部打开 -->
+  <view class="fallback" wx:if="{{showFallback}}">
+    <view class="fallback-card">
+      <text class="fallback-icon">⚠️</text>
+      <text class="fallback-title">无法在当前环境打开此链接</text>
+      <text class="fallback-desc">该网页可能未在小程序后台配置业务域名，或当前网络不可达。</text>
+      <view class="fallback-url">
+        <text class="fallback-url-text">{{url}}</text>
+      </view>
+      <view class="fallback-actions">
+        <button class="btn-copy" bind:tap="copyUrl">复制链接</button>
+        <button class="btn-open" bind:tap="openExternal" wx:if="{{canUseClipboard}}">用浏览器打开</button>
+      </view>
+    </view>
+  </view>
+</view>

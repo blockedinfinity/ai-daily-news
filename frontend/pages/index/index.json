@@ -1,4 +1,5 @@
 {
   "usingComponents": {},
-  "navigationBarTitleText": "AI Daily News"
+  "navigationBarTitleText": "AI Daily News",
+  "enablePullDownRefresh": true
 }

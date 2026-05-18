@@ -1,22 +1,41 @@
 <view class="page">
+  <!-- 顶部 Header -->
   <view class="header">
     <text class="title">AI Daily News</text>
-    <text class="subtitle">每日 AI 行业新闻速览</text>
+    <text class="subtitle">每日 AI 行业新闻精选</text>
   </view>
 
-  <!-- 加载提示 -->
+  <!-- 日期选择器 -->
+  <view class="date-picker" wx:if="{{dates.length > 0}}">
+    <scroll-view class="date-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{dates}}"
+        wx:key="date"
+        class="date-item {{currentDate === item.date ? 'active' : ''}}"
+        bind:tap="switchDate"
+        data-date="{{item.date}}"
+      >
+        <text class="date-label">{{item.label}}</text>
+        <text class="date-count" wx:if="{{item.count}}">{{item.count}}篇</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 加载态 -->
   <view class="loading" wx:if="{{loading}}">
-    <text>加载中...</text>
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
   </view>
 
-  <!-- 错误提示 -->
+  <!-- 错误态 -->
   <view class="error" wx:elif="{{error}}">
-    <text>{{error}}</text>
+    <text class="error-text">{{error}}</text>
   </view>
 
   <!-- 空状态 -->
   <view class="empty" wx:elif="{{newsList.length === 0}}">
-    <text class="empty-text">暂无新闻</text>
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">该日期暂无新闻</text>
   </view>
 
   <!-- 新闻列表 -->
@@ -31,9 +50,27 @@
       data-url="{{item.url}}"
       bind:tap="goDetail"
     >
+      <!-- 序号 + 来源 -->
+      <view class="item-header">
+        <view class="item-index">
+          <text class="index-num">{{index + 1}}</text>
+        </view>
+        <text class="item-source" wx:if="{{item.source}}">{{item.source}}</text>
+      </view>
+      <!-- 标题 -->
       <text class="item-title">{{item.title}}</text>
+      <!-- 摘要预览 -->
       <text class="item-summary" wx:if="{{item.summary}}">{{item.summary}}</text>
-      <text class="item-time">{{item.time}}</text>
+      <!-- 底部时间 + 阅读提示 -->
+      <view class="item-footer">
+        <text class="item-time">{{item.published_at || item.time}}</text>
+        <text class="item-action">查看详情 ›</text>
+      </view>
+    </view>
+
+    <!-- 底部提示 -->
+    <view class="list-footer">
+      <text class="list-footer-text">已显示 {{newsList.length}} 篇精选新闻</text>
     </view>
   </view>
 </view>

@@ -14,24 +14,29 @@ function request(method, path, data) {
           reject({ msg: res.data.message || "请求失败" });
         }
       },
-      fail(err) {
+      fail() {
         reject({ msg: "网络错误，请检查后端服务是否启动" });
       },
     });
   });
 }
 
+/** 获取今日新闻 */
+export const getTodayNews = () => request("GET", "/news/today");
+
+/** 按日期获取新闻（带分页） */
 export const getNewsByDate = (date, page = 1) =>
   request("GET", `/news?date=${date}&page=${page}`);
 
-export const getNewsDetail = (id) =>
-  request("GET", `/news/${id}`);
+/** 获取单条新闻详情 */
+export const getNewsDetail = (id) => request("GET", `/news/${id}`);
 
-export const getAvailableDates = () =>
-  request("GET", "/dates");
+/** 获取所有有新闻的日期列表 */
+export const getAvailableDates = () => request("GET", "/dates");
 
-export const getSummary = (date) =>
-  request("GET", `/summary?date=${date}`);
+/** 获取某日 AI 摘要 */
+export const getSummary = (date) => request("GET", `/summary?date=${date}`);
 
+/** 触发生成某日 AI 摘要 */
 export const generateSummary = (date) =>
-  request("POST", `/summary/generate`, { date });
+  request("POST", "/summary/generate", { date });

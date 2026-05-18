@@ -1,3 +1,5 @@
+import { getNewsDetail } from "../../utils/api";
+
 const app = getApp();
 
 Page({
@@ -8,9 +10,6 @@ Page({
   },
 
   onLoad(options) {
-    // 支持两种方式：
-    // 1. 只传 id → 从 API 获取完整数据
-    // 2. 直接传 title / summary / url 等字段 → 直接展示（免请求）
     if (options.id) {
       this.loadDetail(options.id);
     } else if (options.title) {
@@ -29,30 +28,40 @@ Page({
     }
   },
 
-  loadDetail(id) {
+  async loadDetail(id) {
     this.setData({ loading: true, error: "" });
-    const that = this;
-
-    wx.request({
-      url: app.globalData.baseUrl + "/news/" + id,
-      method: "GET",
-      header: { "Content-Type": "application/json" },
-      success(res) {
-        if (res.data.code === 0) {
-          that.setData({ news: res.data.data, loading: false });
-        } else {
-          that.setData({ error: res.data.message || "请求失败", loading: false });
-        }
-      },
-      fail() {
-        that.setData({ error: "网络错误", loading: false });
-      },
-    });
+    try {
+      const data = await getNewsDetail(id);
+      // 处理摘要：按行分割，去除空行
+      if (data.summary) {
+        const lines = data.summary
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        data.summaryLines = lines;
+      }
+      this.setData({ news: data, loading: false });
+    } catch {
+      this.setData({ error: "加载失败，请重试", loading: false });
+    }
   },
 
   openUrl() {
     const url = this.data.news?.url;
     if (!url) return;
-    wx.navigateTo({ url: "/pages/webview/webview?url=" + encodeURIComponent(url) });
+    wx.navigateTo({
+      url: "/pages/webview/webview?url=" + encodeURIComponent(url),
+    });
+  },
+
+  copyUrl() {
+    const url = this.data.news?.url;
+    if (!url) return;
+    wx.setClipboardData({
+      data: url,
+      success() {
+        wx.showToast({ title: "链接已复制", icon: "success" });
+      },
+    });
   },
 });

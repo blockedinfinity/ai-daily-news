@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/summary/summary",
     "pages/detail/detail",
     "pages/webview/webview"
   ],
@@ -9,6 +10,26 @@
     "navigationBarTitleText": "AI Daily News",
     "navigationBarBackgroundColor": "#ffffff",
     "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1a73e8",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "新闻",
+        "iconPath": "images/news.png",
+        "selectedIconPath": "images/news-active.png"
+      },
+      {
+        "pagePath": "pages/summary/summary",
+        "text": "AI 摘要",
+        "iconPath": "images/summary.png",
+        "selectedIconPath": "images/summary-active.png"
+      }
+    ]
   },
   "usingComponents": {},
   "style": "v2",

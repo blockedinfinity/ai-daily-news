@@ -1,42 +1,80 @@
 <view class="page">
   <!-- 加载态 -->
   <view class="loading" wx:if="{{loading}}">
-    <text>加载中...</text>
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
   </view>
 
   <!-- 错误态 -->
   <view class="error" wx:elif="{{error}}">
-    <text>{{error}}</text>
+    <text class="error-icon">:(</text>
+    <text class="error-text">{{error}}</text>
   </view>
 
   <!-- 内容 -->
   <view class="content" wx:elif="{{news}}">
-    <text class="title">{{news.title}}</text>
-    <text class="time">{{news.published_at || news.time}}</text>
+    <!-- 标题区 -->
+    <view class="title-section">
+      <text class="title">{{news.title}}</text>
+      <view class="meta-row">
+        <text class="source-tag" wx:if="{{news.source}}">{{news.source}}</text>
+        <text class="time">{{news.published_at || news.time}}</text>
+      </view>
+    </view>
 
     <view class="divider"></view>
 
-    <!-- 完整摘要（用 view 包裹实现换行） -->
-    <text class="section-label" wx:if="{{news.summary}}">AI 摘要</text>
-    <view class="summary-block" wx:if="{{news.summary}}">
-      <block wx:for="{{news.summary.split('\n')}}" wx:key="index">
-        <text class="summary-line" wx:if="{{item.trim()}}">{{item}}</text>
-      </block>
+    <!-- AI 摘要 -->
+    <view class="summary-section" wx:if="{{news.summaryLines.length > 0}}">
+      <view class="section-header">
+        <view class="section-icon">🤖</view>
+        <text class="section-label">AI 摘要</text>
+      </view>
+      <view class="summary-block">
+        <view
+          class="summary-item"
+          wx:for="{{news.summaryLines}}"
+          wx:key="index"
+        >
+          <view class="bullet-marker" wx:if="{{news.summaryLines.length > 1}}">
+            <text class="bullet-num">{{index + 1}}</text>
+          </view>
+          <text class="summary-text" wx:if="{{news.summaryLines.length > 1}}">{{item}}</text>
+          <text class="summary-text single" wx:else>{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- AI 摘要（兼容旧数据：没有 summaryLines 的情况） -->
+    <view class="summary-section" wx:elif="{{news.summary}}">
+      <view class="section-header">
+        <view class="section-icon">🤖</view>
+        <text class="section-label">AI 摘要</text>
+      </view>
+      <view class="summary-block">
+        <block wx:for="{{news.summary.split('\n')}}" wx:key="index">
+          <text class="summary-text single" wx:if="{{item.trim()}}">{{item}}</text>
+        </block>
+      </view>
     </view>
 
     <!-- 正文 -->
-    <text class="section-label" wx:if="{{news.content}}">原文</text>
-    <text class="body" wx:if="{{news.content}}">{{news.content}}</text>
-
-    <!-- 原始链接 -->
-    <view class="url-section" wx:if="{{news.url}}">
-      <text class="section-label">原文链接</text>
-      <text class="url-text">{{news.url}}</text>
+    <view class="body-section" wx:if="{{news.content}}">
+      <view class="section-header">
+        <view class="section-icon">📄</view>
+        <text class="section-label">原文内容</text>
+      </view>
+      <text class="body-text">{{news.content}}</text>
     </view>
 
-    <!-- 跳转按钮 -->
+    <!-- 底部操作区 -->
     <view class="footer" wx:if="{{news.url}}">
-      <button class="link-btn" bind:tap="openUrl">查看原文 ↗</button>
+      <button class="btn-primary" bind:tap="openUrl">
+        <text>查看原文 ↗</text>
+      </button>
+      <button class="btn-secondary" bind:tap="copyUrl">
+        <text>复制链接</text>
+      </button>
     </view>
   </view>
 </view>
