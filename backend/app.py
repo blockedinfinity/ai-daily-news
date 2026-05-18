@@ -64,7 +64,28 @@ def list_news():
 
 @app.route("/api/news/today", methods=["GET"])
 def today_news():
-    return success(db.get_today_news())
+    items = db.get_today_news()
+    # 数据库为空时，自动触发后台抓取
+    if not items:
+        import threading
+        def _auto_fetch():
+            try:
+                from services import dedup, rss
+                from services.ai import batch_summarize, batch_translate
+                news_list = rss.fetch_news()
+                filtered = dedup.filter_new(news_list)
+                if not filtered:
+                    app.logger.info("[自动抓取] 无新新闻")
+                    return
+                translated = batch_translate(filtered)
+                summarized, digest = batch_summarize(translated)
+                count = db.save_news(summarized, digest)
+                app.logger.info("[自动抓取] 完成，入库 %d 条", count)
+            except Exception as e:
+                app.logger.error("[自动抓取] 失败: %s", e, exc_info=True)
+        threading.Thread(target=_auto_fetch, daemon=True).start()
+        return success([], "数据库为空，已自动触发抓取，请 1-2 分钟后刷新")
+    return success(items)
 
 
 @app.route("/api/news/<int:news_id>", methods=["GET"])
@@ -168,9 +189,9 @@ def generate_summary_route():
 
 # ── fetch (手动触发 RSS 抓取，异步) ─────────────────────────
 
-@app.route("/api/fetch", methods=["POST"])
+@app.route("/api/fetch", methods=["GET", "POST"])
 def trigger_fetch():
-    """手动触发 RSS 抓取：立即返回，后台线程执行。"""
+    """手动触发 RSS 抓取：立即返回，后台线程执行。支持 GET（浏览器直接访问）和 POST。"""
     import threading
 
     def _run():
@@ -200,13 +221,9 @@ def trigger_fetch():
 # 确保 WSGI 导入时也初始化数据库
 db.init_db()
 
-# PythonAnywhere WSGI 导入时启动调度器
-from scheduler import start_scheduler
-
-scheduler = start_scheduler(app)
+# Render + gunicorn 不兼容 APScheduler，已改用 Render Cron Job (fetch_once.py)
+# from scheduler import start_scheduler
+# scheduler = start_scheduler(app)
 
 if __name__ == "__main__":
-    try:
-        app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
-    finally:
-        scheduler.shutdown(wait=False)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
