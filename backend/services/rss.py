@@ -16,17 +16,17 @@ PER_SOURCE_LIMIT = 6
 MAX_CONTENT_LENGTH = 2000
 
 SOURCES = [
-    # 国内源
-    {"name": "机器之心", "url": "https://www.jiqizhixin.com/rss"},
-    {"name": "极客公园", "url": "https://www.geekpark.net/rss"},
+    # 中文源
+    {"name": "量子位", "url": "https://www.qbitai.com/feed"},
+    {"name": "少数派", "url": "https://sspai.com/feed"},
     # 海外源
-    {"name": "arXiv AI 论文", "url": "https://export.arxiv.org/rss/cs.AI"},
     {"name": "Hacker News", "url": "https://hnrss.org/frontpage?points=100"},
     {"name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/"},
     {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/"},
-    {"name": "Google AI", "url": "https://blog.google/innovation-and-ai/technology/ai/rss/"},
+    {"name": "Google AI Blog", "url": "https://blog.google/innovation-and-ai/technology/ai/rss/"},
     {"name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss"},
     {"name": "VentureBeat AI", "url": "https://venturebeat.com/category/ai/feed/"},
+    {"name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"},
 ]
 
 

@@ -99,20 +99,32 @@ def batch_translate(items):
 
 
 def batch_summarize(news_list):
-    """批量总结：一次 DeepSeek 调用，返回 (items_with_summary, daily_digest)。"""
+    """批量总结：跳过已有摘要的新闻，只对新内容调用 DeepSeek。"""
     if not news_list:
         return [], "今天还没有新闻。"
 
+    # 优先使用翻译后的中文内容，已翻译的用翻译内容，未翻译的用原文
+    def _content(n):
+        return (n.get("content_cn") or n.get("content") or "")[:500]
+
+    # 只摘要尚未生成摘要的新闻
+    need_summary = [n for n in news_list if not n.get("summary")]
+    already_done = [n for n in news_list if n.get("summary")]
+
+    if not need_summary:
+        return news_list, "今日所有新闻已有摘要"
+
     prompt = ""
-    for n in news_list:
+    for n in need_summary:
         prompt += f"""
-标题：{n['title']}
-内容：{n.get('content', '')[:300]}
+标题：{n.get('title_cn') or n['title']}
+内容：{_content(n)}
 ---
 """
+
     prompt += f"""
 
-请对以上 {len(news_list)} 条新闻逐条总结，并生成今日日报。
+请对以上 {len(need_summary)} 条新闻逐条总结，并生成今日日报。
 严格按照 JSON 格式返回（不要 markdown 代码块）：
 {{
   "items": [
@@ -132,21 +144,20 @@ def batch_summarize(news_list):
     )
     items, digest = parse_batch_result(response)
 
+    # 用标题匹配：支持中文标题（翻译后）或原始英文标题
     summary_map = {s["title"]: s for s in items}
-    items_with_summary = []
-    for n in news_list:
-        s = summary_map.get(n["title"], {})
+
+    for n in need_summary:
+        key = (n.get("title_cn") or n["title"])
+        s = summary_map.get(key, {})
         if s:
-            summary = (
+            n["summary"] = (
                 f"一句话总结：{s.get('one_sentence', '')}\n\n"
                 f"中文解释：{s.get('explanation', '')}\n\n"
                 f"为什么重要：{s.get('why_important', '')}"
             )
-        else:
-            summary = ""
-        items_with_summary.append({**n, "summary": summary})
 
-    return items_with_summary, digest
+    return news_list, digest
 
 
 def summarize_news(title, content):
