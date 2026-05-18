@@ -23,13 +23,6 @@ def _job():
     logger.info("[每日任务] 入库 %d 条，日报摘要已生成", count)
 
 
-def _manual_fetch():
-    """手动触发的抓取任务，逻辑与 _job 相同。"""
-    logger.info("[手动抓取] 开始执行...")
-    _job()
-    logger.info("[手动抓取] 执行完成")
-
-
 def start_scheduler(app):
     scheduler = BackgroundScheduler()
     scheduler.add_job(_job, "interval", hours=24, id="daily_news", replace_existing=True)

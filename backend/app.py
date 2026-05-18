@@ -3,7 +3,6 @@
 import json
 import logging
 import os
-from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -171,14 +170,28 @@ def generate_summary_route():
 
 @app.route("/api/fetch", methods=["POST"])
 def trigger_fetch():
-    """手动触发 RSS 抓取：立即返回，后台 APScheduler 异步执行。"""
-    from scheduler import scheduler
+    """手动触发 RSS 抓取：立即返回，后台线程执行。"""
+    import threading
 
-    scheduler.add_job(
-        "_manual_fetch", "date",
-        run_date=datetime.utcnow() + timedelta(seconds=1),
-        id="manual_fetch", replace_existing=True,
-    )
+    def _run():
+        try:
+            from services import dedup, rss, db
+            from services.ai import batch_summarize, batch_translate
+
+            news_list = rss.fetch_news()
+            filtered = dedup.filter_new(news_list)
+            if not filtered:
+                app.logger.info("[手动抓取] 无新新闻 (%d 条重复)", len(news_list))
+                return
+            app.logger.info("[手动抓取] 新 %d 条，开始翻译...", len(filtered))
+            translated = batch_translate(filtered)
+            summarized, digest = batch_summarize(translated)
+            count = db.save_news(summarized, digest)
+            app.logger.info("[手动抓取] 完成，入库 %d 条", count)
+        except Exception as e:
+            app.logger.error("[手动抓取] 失败: %s", e, exc_info=True)
+
+    threading.Thread(target=_run, daemon=True).start()
     return success(None, "抓取任务已提交，请 1-2 分钟后刷新查看")
 
 
