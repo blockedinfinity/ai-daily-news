@@ -8,6 +8,7 @@ from openai import OpenAI
 API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
 MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+logger = logging.getLogger(__name__)
 
 _client = None
 

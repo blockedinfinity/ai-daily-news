@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/detail/detail",
+    "pages/summary/summary",
     "pages/webview/webview"
   ],
   "window": {
