@@ -11,7 +11,7 @@
     src="{{url}}"
     bindmessage="onMessage"
     binderror="onError"
-    bindload="onLoad"
+    bindload="onWebviewLoad"
   ></web-view>
 
   <!-- 错误兜底：复制链接 + 外部打开 -->

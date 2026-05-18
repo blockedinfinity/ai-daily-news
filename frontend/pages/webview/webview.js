@@ -27,7 +27,7 @@ Page({
     if (this._timer) clearTimeout(this._timer);
   },
 
-  onLoad() {
+  onWebviewLoad() {
     this.setData({ loaded: true, loading: false });
     if (this._timer) clearTimeout(this._timer);
   },
