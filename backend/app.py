@@ -180,21 +180,44 @@ def generate_summary_route():
 
 @app.route("/api/fetch", methods=["GET", "POST"])
 def trigger_fetch():
-    """同步触发 RSS 抓取（可能超时，仅供测试）。"""
+    """同步触发 RSS 抓取 + 翻译 + 摘要。返回详细结果。"""
+    import traceback
     try:
         from services import dedup, rss
         from services.ai import batch_summarize, batch_translate
 
+        # 第一步：抓取 RSS
         news_list = rss.fetch_news()
+        step = {"fetched": len(news_list)}
+
+        # 第二步：去重
         filtered = dedup.filter_new(news_list)
+        step["new"] = len(filtered)
         if not filtered:
-            return success({"fetched": 0, "new": 0}, f"无新新闻（共 {len(news_list)} 条重复）")
-        translated = batch_translate(filtered)
-        summarized, digest = batch_summarize(translated)
+            return success(step, f"无新新闻（共 {len(news_list)} 条重复）")
+
+        # 第三步：翻译
+        try:
+            translated = batch_translate(filtered)
+            step["translated"] = len(translated)
+        except Exception as e:
+            step["translate_error"] = str(e)
+            translated = filtered  # 翻译失败也继续
+
+        # 第四步：摘要
+        try:
+            summarized, digest = batch_summarize(translated)
+            step["summarized"] = len(summarized)
+        except Exception as e:
+            step["summarize_error"] = str(e)
+            summarized = translated  # 摘要失败也继续
+
+        # 第五步：入库
         count = db.save_news(summarized, digest)
-        return success({"fetched": len(news_list), "new": count}, f"入库 {count} 条")
+        step["saved"] = count
+        return success(step, f"完成，入库 {count} 条")
     except Exception as e:
-        app.logger.error("[同步抓取] 失败: %s", e, exc_info=True)
+        app.logger.error("[同步抓取] 失败: %s\n%s", e, traceback.format_exc())
         return error(f"抓取失败: {e}", code=500, status=500)
 
 
