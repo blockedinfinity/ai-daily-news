@@ -74,14 +74,6 @@ def _cn(d):
     return d
 
 
-def _connect():
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL 环境变量未设置")
-    conn = psycopg2.connect(DATABASE_URL)
-    conn.autocommit = False
-    return conn
-
-
 def init_db():
     conn = _connect()
     cur = conn.cursor()

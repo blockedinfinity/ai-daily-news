@@ -201,6 +201,77 @@ def generate_summary_route():
         return error(str(e), code=500, status=500)
 
 
+# ── backfill images ──────────────────────────────────────────
+
+@app.route("/api/backfill-images", methods=["POST"])
+def backfill_images():
+    """为已有新闻回填 image_url（从文章页面提取 og:image）。"""
+    auth = _check_internal()
+    if auth:
+        return auth
+    import psycopg2.extras
+    from services.rss import _extract_first_image
+    import requests as _req
+
+    try:
+        conn = db._connect()
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(
+                "SELECT id, url, title FROM news WHERE (image_url IS NULL OR image_url = '') AND url != '' ORDER BY id"
+            )
+            news_items = cur.fetchall()
+        finally:
+            db._putback(conn)
+
+        if not news_items:
+            return success({"total": 0, "updated": 0}, "所有新闻已有图片，无需回填")
+
+        updated = 0
+        failed = 0
+        results = []
+        for news in news_items:
+            url = (news.get("url") or "").strip()
+            if not url:
+                continue
+            try:
+                resp = _req.get(
+                    url, timeout=10,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; AI-Daily-News/1.0)"},
+                )
+                if resp.status_code == 200 and len(resp.text) > 200:
+                    image = _extract_first_image(resp.text[:50000])
+                    if image:
+                        conn2 = db._connect()
+                        try:
+                            cur2 = conn2.cursor()
+                            cur2.execute("UPDATE news SET image_url = %s WHERE id = %s", (image, news["id"]))
+                            conn2.commit()
+                        finally:
+                            db._putback(conn2)
+                        updated += 1
+                        results.append({"id": news["id"], "title": news["title"][:40], "image": image[:80]})
+                        app.logger.info("[backfill] [%d] %s -> %s", news["id"], news["title"][:30], image[:60])
+                    else:
+                        failed += 1
+                else:
+                    failed += 1
+            except Exception as e:
+                failed += 1
+                app.logger.warning("[backfill] [%d] 获取失败: %s", news["id"], e)
+
+        return success({
+            "total": len(news_items),
+            "updated": updated,
+            "failed": failed,
+            "results": results,
+        }, f"回填完成: {updated}/{len(news_items)} 条")
+    except Exception as e:
+        import traceback
+        app.logger.error("[backfill] %s\n%s", e, traceback.format_exc())
+        return error(str(e), code=500, status=500)
+
+
 # ── fetch (仅供内部测试) ────────────────────────────────────
 # 完整流程（含翻译+摘要）请使用 GitHub Actions fetch_once.py。
 
