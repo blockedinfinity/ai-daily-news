@@ -213,24 +213,17 @@ def generate_summary_route():
 
 @app.route("/api/fetch", methods=["GET", "POST"])
 def trigger_fetch():
-    """抓取 RSS 并入库。翻译和摘要由 Render Cron Job (fetch_once.py) 完成。"""
-    import traceback
+    """抓取 RSS 并入库。"""
     try:
-        from services import dedup, rss
+        from services import rss
 
         news_list = rss.fetch_news()
-        filtered = dedup.filter_new(news_list)
-        step = {"fetched": len(news_list), "new": len(filtered)}
-
-        if not filtered:
-            return success(step, f"无新新闻（共 {len(news_list)} 条重复）")
-
-        count = db.save_news(filtered, "")
-        step["saved"] = count
-        return success(step, f"入库 {count} 条")
+        count = db.save_news(news_list, "")
+        return success({"fetched": len(news_list), "saved": count}, f"入库 {count} 条")
     except Exception as e:
-        app.logger.error("[同步抓取] 失败: %s\n%s", e, traceback.format_exc())
-        return error(f"抓取失败: {e}", code=500, status=500)
+        import traceback
+        app.logger.error("[fetch] %s\n%s", e, traceback.format_exc())
+        return error(str(e), code=500, status=500)
 
 
 # ── startup ──────────────────────────────────────────────────
