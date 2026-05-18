@@ -47,7 +47,14 @@ def handle_error(e):
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return success({"status": "ok", "service": "ai-daily-news"})
+    db_ok = False
+    try:
+        conn = db._connect()
+        conn.close()
+        db_ok = True
+    except Exception:
+        pass
+    return success({"status": "ok" if db_ok else "db_error", "db": db_ok, "service": "ai-daily-news"})
 
 
 # ── news ──────────────────────────────────────────────────────
@@ -194,7 +201,10 @@ def trigger_fetch():
 # ── startup ──────────────────────────────────────────────────
 
 # 确保 WSGI 导入时也初始化数据库
-db.init_db()
+try:
+    db.init_db()
+except Exception as e:
+    app.logger.error("数据库初始化失败: %s", e)
 
 # Render + gunicorn 不兼容 APScheduler，已改用 Render Cron Job (fetch_once.py)
 # from scheduler import start_scheduler

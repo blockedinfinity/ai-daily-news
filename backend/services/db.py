@@ -7,11 +7,22 @@
 import json
 import os
 from datetime import date
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
 import psycopg2
 import psycopg2.extras
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+_raw_url = os.getenv("DATABASE_URL", "")
+
+# psycopg2 不支持 channel_binding 参数，需要移除
+def _clean_url(raw):
+    parsed = urlparse(raw)
+    params = parse_qsl(parsed.query)
+    params = [(k, v) for k, v in params if k != "channel_binding"]
+    cleaned = parsed._replace(query=urlencode(params))
+    return urlunparse(cleaned)
+
+DATABASE_URL = _clean_url(_raw_url) if _raw_url else ""
 
 
 def _cn(d):
