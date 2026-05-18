@@ -30,5 +30,6 @@
     "include": []
   },
   "appid": "wxc58f93782f3a8e7c",
-  "editorSetting": {}
+  "editorSetting": {},
+  "libVersion": "3.16.0"
 }

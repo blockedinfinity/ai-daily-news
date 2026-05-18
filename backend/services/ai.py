@@ -1,6 +1,7 @@
 """DeepSeek API 调用 —— 纯函数，无状态。"""
 
 import json
+import logging
 import os
 
 from openai import OpenAI

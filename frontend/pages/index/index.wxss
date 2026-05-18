@@ -8,6 +8,16 @@
   padding: 40rpx 10rpx 30rpx;
 }
 
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.title-group {
+  flex: 1;
+}
+
 .header .title {
   font-size: 44rpx;
   font-weight: 700;
@@ -19,6 +29,20 @@
   color: #999;
   margin-top: 8rpx;
   display: block;
+}
+
+.summary-btn {
+  margin-top: 8rpx;
+  background: #1a73e8;
+  border-radius: 12rpx;
+  padding: 14rpx 28rpx;
+  flex-shrink: 0;
+}
+
+.summary-btn-text {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: 600;
 }
 
 .loading,
@@ -57,10 +81,9 @@
   color: #666;
   line-height: 1.6;
   margin-top: 12rpx;
-  display: block;
+  display: -webkit-box;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }

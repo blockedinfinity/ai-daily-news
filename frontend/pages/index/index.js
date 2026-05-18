@@ -46,4 +46,8 @@ Page({
     const params = `id=${id}&title=${encodeURIComponent(title || "")}&summary=${encodeURIComponent(summary || "")}&url=${encodeURIComponent(url || "")}`;
     wx.navigateTo({ url: `/pages/detail/detail?${params}` });
   },
+
+  goSummary() {
+    wx.navigateTo({ url: "/pages/summary/summary" });
+  },
 });
