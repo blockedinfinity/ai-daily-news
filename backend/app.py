@@ -166,6 +166,29 @@ def generate_summary_route():
         return error(str(e), code=500, status=500)
 
 
+# ── fetch (手动触发 RSS 抓取) ────────────────────────────────
+
+@app.route("/api/fetch", methods=["POST"])
+def trigger_fetch():
+    """手动触发一次 RSS 抓取 + 翻译 + 摘要。"""
+    try:
+        from services import dedup, rss
+        from services.ai import batch_summarize, batch_translate
+
+        news_list = rss.fetch_news()
+        filtered = dedup.filter_new(news_list)
+        if not filtered:
+            return success({"total": len(news_list), "new": 0}, "无新新闻")
+
+        translated = batch_translate(filtered)
+        summarized, digest = batch_summarize(translated)
+        count = db.save_news(summarized, digest)
+        return success({"total": len(news_list), "new": len(filtered), "saved": count}, "抓取完成")
+    except Exception as e:
+        app.logger.error("手动抓取失败", exc_info=e)
+        return error(f"抓取失败: {e}", code=500, status=500)
+
+
 # ── startup ──────────────────────────────────────────────────
 
 # 确保 WSGI 导入时也初始化数据库
