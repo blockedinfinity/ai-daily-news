@@ -95,6 +95,7 @@ def init_db():
             summary     TEXT DEFAULT '',
             title_cn    TEXT DEFAULT '',
             content_cn  TEXT DEFAULT '',
+            image_url   TEXT DEFAULT '',
             published_at TIMESTAMP,
             date        TEXT NOT NULL,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -118,6 +119,11 @@ def init_db():
             cur.execute(idx_sql)
         except psycopg2.Error:
             pass
+    # 迁移：为旧表添加 image_url 字段（忽略已存在）
+    try:
+        cur.execute("ALTER TABLE news ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''")
+    except psycopg2.Error:
+        pass
     conn.commit()
     cur.close()
     conn.close()
@@ -157,10 +163,11 @@ def save_news(items, daily_digest=""):
             if title and title in existing_titles:
                 continue
             cur.execute(
-                """INSERT INTO news (title, url, source, content, summary, title_cn, content_cn, published_at, date)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                """INSERT INTO news (title, url, source, content, summary, title_cn, content_cn, image_url, published_at, date)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (title, url, item.get("source", ""), item.get("content", ""),
                  item.get("summary", ""), item.get("title_cn", ""), item.get("content_cn", ""),
+                 item.get("image_url", ""),
                  item.get("published_at", today), today),
             )
             count += 1
@@ -225,11 +232,11 @@ def get_today_news():
     conn = _connect()
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            "SELECT id, title, title_cn, url, source, summary, published_at as time"
-            " FROM news WHERE date = %s ORDER BY time DESC",
-            (today,),
-        )
+            cur.execute(
+                "SELECT id, title, title_cn, url, source, summary, image_url, published_at as time"
+                " FROM news WHERE date = %s ORDER BY time DESC",
+                (today,),
+            )
         rows = cur.fetchall()
         return [_cn(r) for r in rows]
     finally:

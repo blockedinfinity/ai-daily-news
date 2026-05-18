@@ -89,6 +89,20 @@
   margin: 24rpx 0;
 }
 
+/* ===== 热点图片 ===== */
+.hotspot-image {
+  margin-bottom: 24rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+.hotspot-img {
+  width: 100%;
+  height: 400rpx;
+  display: block;
+}
+
 /* ===== 通用 Section ===== */
 .section-header {
   display: flex;

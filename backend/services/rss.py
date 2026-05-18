@@ -35,6 +35,27 @@ def _strip_html(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _extract_first_image(html):
+    """从 HTML 内容中提取第一张图片 URL。优先 og:image / twitter:image，其次 <img src>。"""
+    if not html:
+        return ""
+    # 优先取 og:image 或 twitter:image
+    og = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.I)
+    if og:
+        return og.group(1).strip()
+    og2 = re.search(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', html, re.I)
+    if og2:
+        return og2.group(1).strip()
+    tw = re.search(r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']', html, re.I)
+    if tw:
+        return tw.group(1).strip()
+    # 其次取 <img src>
+    img = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.I)
+    if img:
+        return img.group(1).strip()
+    return ""
+
+
 def _entry_time(entry):
     tt = entry.get("published_parsed")
     if tt:
@@ -94,12 +115,24 @@ def fetch_source(source):
         except (ValueError, TypeError):
             pass
 
+        # 从原始 HTML 内容中提取图片
+        raw_html = ""
+        if entry.get("content"):
+            raw_html = entry.content[0].get("value", "")
+        elif entry.get("summary_detail"):
+            raw_html = entry.summary_detail.get("value", "")
+        elif entry.get("summary"):
+            raw_html = entry.summary if "<" in (entry.summary or "") else ""
+
+        image_url = _extract_first_image(raw_html)
+
         items.append(
             {
                 "title": title,
                 "url": url,
                 "source": name,
                 "content": _entry_content(entry) or title,
+                "image_url": image_url,
                 "published_at": pub.strftime("%Y-%m-%d %H:%M:%S"),
                 "score": score,
                 "comments": comments,

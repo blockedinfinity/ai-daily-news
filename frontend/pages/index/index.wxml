@@ -54,7 +54,7 @@
   <!-- 新闻列表 -->
   <view class="list" wx:elif="{{newsList.length > 0}}">
     <view
-      class="news-item"
+      class="news-item {{item.image_url ? 'has-image' : ''}}"
       wx:for="{{newsList}}"
       wx:key="id"
       data-id="{{item.id}}"
@@ -63,21 +63,30 @@
       data-url="{{item.url}}"
       bind:tap="goDetail"
     >
-      <!-- 序号 + 来源 -->
-      <view class="item-header">
-        <view class="item-index">
-          <text class="index-num">{{index + 1}}</text>
+      <view class="item-body">
+        <!-- 左侧内容 -->
+        <view class="item-content">
+          <!-- 序号 + 来源 -->
+          <view class="item-header">
+            <view class="item-index">
+              <text class="index-num">{{index + 1}}</text>
+            </view>
+            <text class="item-source" wx:if="{{item.source}}">{{item.source}}</text>
+          </view>
+          <!-- 标题 -->
+          <text class="item-title">{{item.title}}</text>
+          <!-- 摘要预览 -->
+          <text class="item-summary" wx:if="{{item.summary}}">{{item.summary}}</text>
+          <!-- 底部时间 + 阅读提示 -->
+          <view class="item-footer">
+            <text class="item-time">{{item.published_at || item.time}}</text>
+            <text class="item-action">查看详情 ›</text>
+          </view>
         </view>
-        <text class="item-source" wx:if="{{item.source}}">{{item.source}}</text>
-      </view>
-      <!-- 标题 -->
-      <text class="item-title">{{item.title}}</text>
-      <!-- 摘要预览 -->
-      <text class="item-summary" wx:if="{{item.summary}}">{{item.summary}}</text>
-      <!-- 底部时间 + 阅读提示 -->
-      <view class="item-footer">
-        <text class="item-time">{{item.published_at || item.time}}</text>
-        <text class="item-action">查看详情 ›</text>
+        <!-- 右侧缩略图 -->
+        <view class="item-thumb" wx:if="{{item.image_url}}">
+          <image class="thumb-img" src="{{item.image_url}}" mode="aspectFill" lazy-load></image>
+        </view>
       </view>
     </view>
 

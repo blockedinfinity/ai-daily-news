@@ -24,11 +24,22 @@
 
     <view class="divider"></view>
 
-    <!-- AI 摘要 -->
+    <!-- 热点图片 -->
+    <view class="hotspot-image" wx:if="{{news.image_url}}">
+      <image
+        class="hotspot-img"
+        src="{{news.image_url}}"
+        mode="aspectFill"
+        bindtap="previewImage"
+        data-src="{{news.image_url}}"
+      ></image>
+    </view>
+
+    <!-- AI 热点 -->
     <view class="summary-section" wx:if="{{news.summaryLines && news.summaryLines.length > 0}}">
       <view class="section-header">
-        <view class="section-icon">🤖</view>
-        <text class="section-label">AI 摘要</text>
+        <view class="section-icon">🔥</view>
+        <text class="section-label">AI 热点</text>
       </view>
       <view class="summary-block">
         <view

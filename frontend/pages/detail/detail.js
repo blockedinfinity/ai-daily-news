@@ -62,4 +62,13 @@ Page({
       },
     });
   },
+
+  previewImage(e) {
+    const src = e.currentTarget.dataset.src;
+    if (!src) return;
+    wx.previewImage({
+      current: src,
+      urls: [src],
+    });
+  },
 });
