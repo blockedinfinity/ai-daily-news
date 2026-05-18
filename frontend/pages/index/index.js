@@ -7,6 +7,9 @@ Page({
   data: {
     dates: [],
     currentDate: "",
+    currentLabel: "今天",
+    currentCount: 0,
+    showDates: false,
     newsList: [],
     loading: true,
     error: "",
@@ -46,6 +49,10 @@ Page({
     this.loadMore();
   },
 
+  toggleDates() {
+    this.setData({ showDates: !this.data.showDates });
+  },
+
   async loadDates() {
     try {
       const dates = await getAvailableDates();
@@ -56,12 +63,17 @@ Page({
         label: this._formatLabel(d.date, today),
       }));
 
+      const currentDate = formatted.length > 0 ? formatted[0].date : today;
+      const current = formatted.find((d) => d.date === currentDate);
+
       this.setData({
         dates: formatted,
-        currentDate: formatted.length > 0 ? formatted[0].date : today,
+        currentDate,
+        currentLabel: current ? current.label : "今天",
+        currentCount: current ? (current.count || 0) : 0,
       });
 
-      await this.loadNews(this.data.currentDate);
+      await this.loadNews(currentDate);
     } catch {
       this.setData({ loading: false, error: "加载日期失败" });
     }
@@ -100,7 +112,6 @@ Page({
       return;
     }
     this.setData({ loadingMore: true });
-    // 模拟少量延迟让用户感知到加载反馈
     setTimeout(() => {
       this.setData({
         newsList: this._allItems.slice(0, nextCount),
@@ -112,8 +123,17 @@ Page({
 
   switchDate(e) {
     const { date } = e.currentTarget.dataset;
-    if (date === this.data.currentDate) return;
-    this.setData({ currentDate: date });
+    if (date === this.data.currentDate) {
+      this.setData({ showDates: false });
+      return;
+    }
+    const target = this.data.dates.find((d) => d.date === date);
+    this.setData({
+      currentDate: date,
+      currentLabel: target ? target.label : date,
+      currentCount: target ? (target.count || 0) : 0,
+      showDates: false,
+    });
     this.loadNews(date);
   },
 

@@ -7,18 +7,31 @@
 
   <!-- 日期选择器 -->
   <view class="date-picker" wx:if="{{dates.length > 0}}">
-    <scroll-view class="date-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-      <view
-        wx:for="{{dates}}"
-        wx:key="date"
-        class="date-item {{currentDate === item.date ? 'active' : ''}}"
-        bind:tap="switchDate"
-        data-date="{{item.date}}"
-      >
-        <text class="date-label">{{item.label}}</text>
-        <text class="date-count" wx:if="{{item.count}}">{{item.count}}篇</text>
+    <!-- 当前选中日期（可点击展开） -->
+    <view class="date-trigger" bind:tap="toggleDates">
+      <view class="date-trigger-left">
+        <text class="date-trigger-label">{{currentLabel}}</text>
+        <text class="date-trigger-count">{{currentCount}} 篇</text>
       </view>
-    </scroll-view>
+      <text class="date-trigger-arrow {{showDates ? 'expanded' : ''}}">▾</text>
+    </view>
+
+    <!-- 展开的日期列表 -->
+    <view class="date-dropdown" wx:if="{{showDates}}">
+      <view class="date-dropdown-mask" bind:tap="toggleDates"></view>
+      <view class="date-dropdown-list">
+        <view
+          wx:for="{{dates}}"
+          wx:key="date"
+          class="date-dropdown-item {{currentDate === item.date ? 'active' : ''}}"
+          bind:tap="switchDate"
+          data-date="{{item.date}}"
+        >
+          <text class="date-dropdown-text">{{item.label}}</text>
+          <text class="date-dropdown-count">{{item.count}}篇</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 加载态 -->
