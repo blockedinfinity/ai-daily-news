@@ -1,6 +1,6 @@
 App({
   globalData: {
-    baseUrl: "https://windflycool.pythonanywhere.com/api",
+    baseUrl: "https://ai-daily-news.onrender.com/api",
     today: "",
   },
 
