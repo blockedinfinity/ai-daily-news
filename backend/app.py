@@ -57,6 +57,35 @@ def health():
     return success({"status": "ok" if db_ok else "db_error", "db": db_ok, "service": "ai-daily-news"})
 
 
+@app.route("/api/debug", methods=["GET"])
+def debug():
+    """逐步测试各模块，返回诊断信息。"""
+    steps = {}
+    try:
+        from services import rss
+        news = rss.fetch_news()
+        steps["rss"] = f"OK, {len(news)} 条"
+    except Exception as e:
+        steps["rss"] = f"ERROR: {e}"
+
+    try:
+        from services import dedup
+        if steps.get("rss", "").startswith("OK"):
+            steps["dedup"] = "OK (import)"
+        else:
+            steps["dedup"] = "OK (import, skip test)"
+    except Exception as e:
+        steps["dedup"] = f"ERROR: {e}"
+
+    try:
+        from services.ai import batch_translate, batch_summarize
+        steps["ai"] = "OK (import)"
+    except Exception as e:
+        steps["ai"] = f"ERROR: {e}"
+
+    return success(steps)
+
+
 # ── news ──────────────────────────────────────────────────────
 
 @app.route("/api/news", methods=["GET"])
