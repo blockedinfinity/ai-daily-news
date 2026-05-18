@@ -4,6 +4,7 @@ import json
 import logging
 import os
 
+import psycopg2.extras
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -205,20 +206,30 @@ def generate_summary_route():
 
 @app.route("/api/backfill-images", methods=["POST"])
 def backfill_images():
-    """为已有新闻回填 image_url（从文章页面提取 og:image）。"""
+    """为已有新闻回填 image_url（从文章页面提取 og:image）。
+    支持 limit 参数控制处理条数（默认 10）。
+    """
     auth = _check_internal()
     if auth:
         return auth
-    import psycopg2.extras
+
     from services.rss import _extract_first_image
     import requests as _req
 
     try:
+        limit = min(int(request.args.get("limit", 10)), 50)
+    except (ValueError, TypeError):
+        limit = 10
+
+    try:
+        # 1. 查询需要回填的新闻
         conn = db._connect()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur.execute(
-                "SELECT id, url, title FROM news WHERE (image_url IS NULL OR image_url = '') AND url != '' ORDER BY id"
+                "SELECT id, url, title FROM news WHERE (image_url IS NULL OR image_url = '') "
+                "AND url != '' ORDER BY id LIMIT %s",
+                (limit,),
             )
             news_items = cur.fetchall()
         finally:
@@ -227,44 +238,45 @@ def backfill_images():
         if not news_items:
             return success({"total": 0, "updated": 0}, "所有新闻已有图片，无需回填")
 
-        updated = 0
-        failed = 0
-        results = []
+        # 2. 逐条抓取文章页面提取图片
+        updates = []  # [(id, image_url), ...]
         for news in news_items:
             url = (news.get("url") or "").strip()
             if not url:
                 continue
             try:
                 resp = _req.get(
-                    url, timeout=10,
+                    url, timeout=8,
                     headers={"User-Agent": "Mozilla/5.0 (compatible; AI-Daily-News/1.0)"},
+                    allow_redirects=True,
                 )
                 if resp.status_code == 200 and len(resp.text) > 200:
                     image = _extract_first_image(resp.text[:50000])
                     if image:
-                        conn2 = db._connect()
-                        try:
-                            cur2 = conn2.cursor()
-                            cur2.execute("UPDATE news SET image_url = %s WHERE id = %s", (image, news["id"]))
-                            conn2.commit()
-                        finally:
-                            db._putback(conn2)
-                        updated += 1
-                        results.append({"id": news["id"], "title": news["title"][:40], "image": image[:80]})
+                        updates.append((news["id"], image))
                         app.logger.info("[backfill] [%d] %s -> %s", news["id"], news["title"][:30], image[:60])
-                    else:
-                        failed += 1
-                else:
-                    failed += 1
+                        continue
             except Exception as e:
-                failed += 1
                 app.logger.warning("[backfill] [%d] 获取失败: %s", news["id"], e)
+
+        # 3. 批量更新数据库（单连接）
+        updated = 0
+        if updates:
+            conn2 = db._connect()
+            try:
+                cur2 = conn2.cursor()
+                for news_id, image_url in updates:
+                    cur2.execute("UPDATE news SET image_url = %s WHERE id = %s", (image_url, news_id))
+                    updated += 1
+                conn2.commit()
+            finally:
+                db._putback(conn2)
 
         return success({
             "total": len(news_items),
             "updated": updated,
-            "failed": failed,
-            "results": results,
+            "batch_limit": limit,
+            "remaining_hint": "再次调用可继续处理" if updated == len(news_items) and updated == limit else "已完成",
         }, f"回填完成: {updated}/{len(news_items)} 条")
     except Exception as e:
         import traceback
