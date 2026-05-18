@@ -57,39 +57,6 @@ def health():
     return success({"status": "ok" if db_ok else "db_error", "db": db_ok, "service": "ai-daily-news"})
 
 
-@app.route("/api/debug", methods=["GET"])
-def debug():
-    """逐步测试各模块，返回诊断信息。"""
-    steps = {}
-    try:
-        from services import rss
-        news = rss.fetch_news()
-        steps["rss"] = f"OK, {len(news)} 条"
-    except Exception as e:
-        steps["rss"] = f"ERROR: {e}"
-
-    try:
-        from services import dedup
-        steps["dedup"] = "OK (import)"
-    except Exception as e:
-        steps["dedup"] = f"ERROR: {e}"
-
-    try:
-        from services.ai import batch_translate, batch_summarize
-        steps["ai"] = "OK (import)"
-    except Exception as e:
-        steps["ai"] = f"ERROR: {e}"
-
-    # 测试数据库写入
-    try:
-        count = db.save_news([{"title": "test", "url": "https://test.com/debug", "source": "debug", "content": "test", "published_at": "2026-05-18 12:00:00"}], "")
-        steps["db_save"] = f"OK, saved {count}"
-    except Exception as e:
-        steps["db_save"] = f"ERROR: {e}"
-
-    return success(steps)
-
-
 # ── news ──────────────────────────────────────────────────────
 
 @app.route("/api/news", methods=["GET"])
@@ -213,13 +180,18 @@ def generate_summary_route():
 
 @app.route("/api/fetch", methods=["GET", "POST"])
 def trigger_fetch():
-    """抓取 RSS 并入库。"""
+    """抓取 RSS + 精选 + 入库（快速测试用，翻译/摘要可能超 30s）。
+    完整流程（含翻译+摘要）请使用 Render Cron Job 调用 fetch_once.py。"""
     try:
-        from services import rss
+        from services import rss, dedup
 
         news_list = rss.fetch_news()
-        count = db.save_news(news_list, "")
-        return success({"fetched": len(news_list), "saved": count}, f"入库 {count} 条")
+        filtered = dedup.filter_new(news_list)
+        if not filtered:
+            return success({"fetched": len(news_list), "filtered": 0, "saved": 0}, "无新新闻")
+
+        count = db.save_news(filtered, "")
+        return success({"fetched": len(news_list), "filtered": len(filtered), "saved": count}, f"入库 {count} 条")
     except Exception as e:
         import traceback
         app.logger.error("[fetch] %s\n%s", e, traceback.format_exc())
