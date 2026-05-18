@@ -5,17 +5,29 @@
   </view>
 
   <view class="date-picker" wx:if="{{dates.length > 0}}">
-    <scroll-view class="date-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-      <view
-        wx:for="{{dates}}"
-        wx:key="date"
-        class="date-item {{currentDate === item.date ? 'active' : ''}}"
-        bind:tap="switchDate"
-        data-date="{{item.date}}"
-      >
-        <text class="date-label">{{item.label}}</text>
+    <view class="date-trigger" bind:tap="toggleDates">
+      <view class="date-trigger-left">
+        <text class="date-trigger-label">{{currentLabel}}</text>
+        <text class="date-trigger-count">{{currentCount}} 篇</text>
       </view>
-    </scroll-view>
+      <text class="date-trigger-arrow {{showDates ? 'expanded' : ''}}">▾</text>
+    </view>
+
+    <view class="date-dropdown" wx:if="{{showDates}}">
+      <view class="date-dropdown-mask" bind:tap="toggleDates"></view>
+      <view class="date-dropdown-list">
+        <view
+          wx:for="{{dates}}"
+          wx:key="date"
+          class="date-dropdown-item {{currentDate === item.date ? 'active' : ''}}"
+          bind:tap="switchDate"
+          data-date="{{item.date}}"
+        >
+          <text class="date-dropdown-text">{{item.label}}</text>
+          <text class="date-dropdown-count">{{item.count}}篇</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <view class="loading" wx:if="{{loading}}">

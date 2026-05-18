@@ -4,6 +4,9 @@ Page({
   data: {
     dates: [],
     currentDate: "",
+    currentLabel: "今天",
+    currentCount: 0,
+    showDates: false,
     content: "",
     loading: true,
     noNews: false,
@@ -14,6 +17,10 @@ Page({
     this.loadDates();
   },
 
+  toggleDates() {
+    this.setData({ showDates: !this.data.showDates });
+  },
+
   async loadDates() {
     try {
       const dates = await getAvailableDates();
@@ -21,12 +28,17 @@ Page({
 
       const formatted = dates.map((d) => ({
         ...d,
-        label: this.formatLabel(d.date, today),
+        label: this._formatLabel(d.date, today),
       }));
+
+      const currentDate = formatted.length > 0 ? formatted[0].date : today;
+      const current = formatted.find((d) => d.date === currentDate);
 
       this.setData({
         dates: formatted,
-        currentDate: formatted.length > 0 ? formatted[0].date : today,
+        currentDate,
+        currentLabel: current ? current.label : "今天",
+        currentCount: current ? (current.count || 0) : 0,
       });
 
       if (this.data.currentDate) {
@@ -47,7 +59,7 @@ Page({
       const result = await getSummary(date);
       this.setData({ content: result.content, loading: false });
     } catch (e) {
-      if (e.msg && e.msg.includes("暂无摘要")) {
+      if (e.msg && e.msg.includes("暂无")) {
         this.setData({ loading: false, content: "" });
       } else {
         this.setData({ loading: false, noNews: true });
@@ -57,8 +69,17 @@ Page({
 
   switchDate(e) {
     const { date } = e.currentTarget.dataset;
-    if (date === this.data.currentDate) return;
-    this.setData({ currentDate: date, content: "" });
+    if (date === this.data.currentDate) {
+      this.setData({ showDates: false });
+      return;
+    }
+    const target = this.data.dates.find((d) => d.date === date);
+    this.setData({
+      currentDate: date,
+      currentLabel: target ? target.label : date,
+      currentCount: target ? (target.count || 0) : 0,
+      showDates: false,
+    });
     this.loadSummary(date);
   },
 
@@ -77,10 +98,10 @@ Page({
     }
   },
 
-  formatLabel(dateStr, today) {
+  _formatLabel(dateStr, today) {
     if (dateStr === today) return "今天";
-    const d = new Date(dateStr);
     const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
+    const d = new Date(dateStr);
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr =
@@ -91,6 +112,12 @@ Page({
       String(yesterday.getDate()).padStart(2, "0");
 
     if (dateStr === yesterdayStr) return "昨天";
-    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} 周${weekDays[d.getDay()]}`;
+    return (
+      String(d.getMonth() + 1).padStart(2, "0") +
+      "/" +
+      String(d.getDate()).padStart(2, "0") +
+      " 周" +
+      weekDays[d.getDay()]
+    );
   },
 });
