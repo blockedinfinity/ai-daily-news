@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 
 from services import db, dedup, rss
-from services.ai import batch_summarize, batch_translate, deepseek_call
+from services.ai import batch_summarize, batch_translate, deepseek_call, generate_summary
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +142,20 @@ def main():
     # 6. 入库
     count = db.save_news(summarized, digest)
     logger.info("=== 完成，入库 %d 条 ===", count)
+
+    # 7. 自动生成 AI 精华总结
+    if count > 0:
+        try:
+            from datetime import date as _date
+            today_str = _date.today().isoformat()
+            news_for_summary, _ = db.get_news_by_date(today_str, 1, 1000)
+            if news_for_summary:
+                summary_text = generate_summary(news_for_summary)
+                news_ids = json.dumps([n["id"] for n in news_for_summary], ensure_ascii=False)
+                db.upsert_summary(today_str, summary_text, news_ids)
+                logger.info("=== AI 精华总结已自动生成 ===")
+        except Exception as e:
+            logger.warning("自动生成总结失败（不影响新闻入库）: %s", e)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-import { getSummaryDates, getSummary, generateSummary } from "../../utils/api";
+import { getSummaryDates, getSummary } from "../../utils/api";
 
 Page({
   data: {
@@ -9,7 +9,6 @@ Page({
     content: "",
     loading: true,
     noNews: false,
-    generating: false,
   },
 
   onLoad() {
@@ -24,14 +23,13 @@ Page({
     try {
       const today = getApp().globalData.today;
 
-      // 加载有总结的日期
       const summaryDates = await getSummaryDates();
       const formatted = summaryDates.map((d) => ({
         ...d,
         label: this._formatLabel(d.date, today),
       }));
 
-      // 确保今天在列表中（即使还没有总结也能看到）
+      // 确保今天始终在列表中
       const hasToday = formatted.some((d) => d.date === today);
       if (!hasToday) {
         formatted.unshift({ date: today, label: "今天" });
@@ -81,21 +79,6 @@ Page({
       showDates: false,
     });
     this.loadSummary(date);
-  },
-
-  async generate() {
-    const date = this.data.currentDate;
-    if (!date || this.data.generating) return;
-
-    this.setData({ generating: true });
-    try {
-      const result = await generateSummary(date);
-      this.setData({ content: result.content, generating: false });
-      wx.showToast({ title: "总结生成成功", icon: "success" });
-    } catch (e) {
-      this.setData({ generating: false });
-      wx.showToast({ title: e.msg || "生成失败", icon: "none" });
-    }
   },
 
   _formatLabel(dateStr, today) {
