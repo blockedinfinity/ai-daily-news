@@ -117,8 +117,8 @@ def init_db():
     except psycopg2.Error:
         pass
     conn.commit()
-    cur.close()
-    conn.close()
+    _putback(conn)
+    return
 
 
 # ── batch ────────────────────────────────────────────────────
