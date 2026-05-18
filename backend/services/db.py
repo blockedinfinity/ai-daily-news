@@ -92,17 +92,30 @@ def save_news(items, daily_digest=""):
     count = 0
     conn = _connect()
     cur = conn.cursor()
+
+    # 批量查询已有 URL 和 title，减少连接次数
+    existing_urls = set()
+    existing_titles = set()
+    for item in items:
+        if item.get("url"):
+            existing_urls.add(item["url"])
+        if item.get("title"):
+            existing_titles.add(item["title"])
+
+    if existing_urls:
+        cur.execute("SELECT url FROM news WHERE url = ANY(%s)", (list(existing_urls),))
+        existing_urls = {r[0] for r in cur.fetchall()}
+    if existing_titles:
+        cur.execute("SELECT title FROM news WHERE title = ANY(%s)", (list(existing_titles),))
+        existing_titles = {r[0] for r in cur.fetchall()}
+
     for item in items:
         url = item.get("url", "")
         title = item.get("title", "")
-        if url:
-            cur.execute("SELECT 1 FROM news WHERE url = %s", (url,))
-            if cur.fetchone():
-                continue
-        if title:
-            cur.execute("SELECT 1 FROM news WHERE title = %s", (title,))
-            if cur.fetchone():
-                continue
+        if url and url in existing_urls:
+            continue
+        if title and title in existing_titles:
+            continue
         cur.execute(
             """INSERT INTO news (title, url, source, content, summary, title_cn, content_cn, published_at, date)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
