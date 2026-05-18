@@ -70,10 +70,7 @@ def debug():
 
     try:
         from services import dedup
-        if steps.get("rss", "").startswith("OK"):
-            steps["dedup"] = "OK (import)"
-        else:
-            steps["dedup"] = "OK (import, skip test)"
+        steps["dedup"] = "OK (import)"
     except Exception as e:
         steps["dedup"] = f"ERROR: {e}"
 
@@ -82,6 +79,13 @@ def debug():
         steps["ai"] = "OK (import)"
     except Exception as e:
         steps["ai"] = f"ERROR: {e}"
+
+    # 测试数据库写入
+    try:
+        count = db.save_news([{"title": "test", "url": "https://test.com/debug", "source": "debug", "content": "test", "published_at": "2026-05-18 12:00:00"}], "")
+        steps["db_save"] = f"OK, saved {count}"
+    except Exception as e:
+        steps["db_save"] = f"ERROR: {e}"
 
     return success(steps)
 
