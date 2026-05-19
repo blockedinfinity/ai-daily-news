@@ -315,6 +315,26 @@ def trigger_fetch():
         return error(str(e), code=500, status=500)
 
 
+# ── project ────────────────────────────────────────────────────
+
+@app.route("/api/project", methods=["GET"])
+def get_project():
+    """获取指定日期的精品项目。"""
+    date = request.args.get("date", "")
+    if not date:
+        return error("缺少 date 参数")
+    project = db.get_project_by_date(date)
+    if not project:
+        return error("该日期暂无精品项目", code=404, status=404)
+    return success(project)
+
+
+@app.route("/api/project-dates", methods=["GET"])
+def list_project_dates():
+    """返回有精品项目的日期列表。"""
+    return success(db.get_project_dates())
+
+
 # ── startup ──────────────────────────────────────────────────
 
 # 确保 WSGI 导入时也初始化数据库

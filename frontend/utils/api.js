@@ -43,3 +43,9 @@ export const generateSummary = (date) =>
 
 /** 获取有 AI 总结的日期列表 */
 export const getSummaryDates = () => request("GET", "/summary-dates");
+
+/** 获取指定日期的精品项目 */
+export const getProject = (date) => request("GET", `/project?date=${date}`);
+
+/** 获取有精品项目的日期列表 */
+export const getProjectDates = () => request("GET", "/project-dates");

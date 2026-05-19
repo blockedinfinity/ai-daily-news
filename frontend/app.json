@@ -27,7 +27,7 @@
       },
       {
         "pagePath": "pages/summary/summary",
-        "text": "AI 总结",
+        "text": "精品项目",
         "iconPath": "images/summary.png",
         "selectedIconPath": "images/summary-active.png"
       }

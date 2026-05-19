@@ -1,9 +1,5 @@
 <view class="page">
-  <view class="header">
-    <text class="title">AI 每日总结</text>
-    <text class="subtitle">从今日精华中提炼最重要的洞察</text>
-  </view>
-
+  <!-- 日期选择器 -->
   <view class="date-picker" wx:if="{{dates.length > 0}}">
     <view class="date-trigger" bind:tap="toggleDates">
       <text class="date-trigger-label">{{currentLabel}}</text>
@@ -26,24 +22,83 @@
     </view>
   </view>
 
+  <!-- 加载中 -->
   <view class="loading" wx:if="{{loading}}">
     <view class="loading-spinner"></view>
     <text class="loading-text">加载中...</text>
   </view>
 
-  <view class="no-news" wx:elif="{{noNews}}">
-    <text class="icon">📭</text>
-    <text class="text">该日期暂无新闻</text>
+  <!-- 无项目 -->
+  <view class="no-project" wx:elif="{{noProject}}">
+    <text class="icon">🔍</text>
+    <text class="text">今日暂无精品项目</text>
+    <text class="sub-text">精选标准：技术先进性 · 社区认可度 · 行业贡献度</text>
   </view>
 
-  <block wx:elif="{{content}}">
-    <view class="summary-card">
-      <text class="content-text">{{content}}</text>
+  <!-- 精品项目内容 -->
+  <block wx:elif="{{project}}">
+    <!-- 封面图 -->
+    <view class="cover-wrap">
+      <image
+        wx:if="{{project.cover_image_url}}"
+        class="cover-image"
+        src="{{project.cover_image_url}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="cover-placeholder">
+        <text class="cover-placeholder-icon">🚀</text>
+      </view>
+    </view>
+
+    <!-- 项目标题区 -->
+    <view class="project-header">
+      <text class="project-name">{{project.name}}</text>
+      <view class="project-meta">
+        <text class="lang-tag" wx:if="{{project.language}}">{{project.language}}</text>
+        <text class="stars-badge">⭐ {{project.stars > 0 ? project.stars + '' : '—'}}</text>
+        <text class="stars-today" wx:if="{{project.stars_today > 0}}">🔥 +{{project.stars_today}}</text>
+      </view>
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 三点极简介绍 -->
+    <view class="intro-section">
+      <!-- 做什么 -->
+      <view class="intro-item">
+        <view class="intro-label">
+          <text class="intro-icon">📌</text>
+          <text class="intro-title">做什么</text>
+        </view>
+        <text class="intro-text">{{project.intro_what}}</text>
+      </view>
+
+      <view class="intro-sep"></view>
+
+      <!-- 为何关注 -->
+      <view class="intro-item">
+        <view class="intro-label">
+          <text class="intro-icon">🔥</text>
+          <text class="intro-title">为何关注</text>
+        </view>
+        <text class="intro-text">{{project.intro_why}}</text>
+      </view>
+
+      <view class="intro-sep"></view>
+
+      <!-- 怎么用 -->
+      <view class="intro-item">
+        <view class="intro-label">
+          <text class="intro-icon">🚀</text>
+          <text class="intro-title">怎么用</text>
+        </view>
+        <text class="intro-text">{{project.intro_how}}</text>
+      </view>
+    </view>
+
+    <!-- 底部说明 -->
+    <view class="footer-note">
+      <text>精选来源：GitHub Trending · Hacker News · Reddit</text>
     </view>
   </block>
-
-  <view class="no-summary" wx:elif="{{!loading && !content && !noNews}}">
-    <text class="icon">⏳</text>
-    <text class="text">今日总结正在生成中，请稍后再来</text>
-  </view>
 </view>

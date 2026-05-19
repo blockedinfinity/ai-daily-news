@@ -1,4 +1,4 @@
-import { getSummaryDates, getSummary } from "../../utils/api";
+import { getProjectDates, getProject } from "../../utils/api";
 
 Page({
   data: {
@@ -6,9 +6,9 @@ Page({
     currentDate: "",
     currentLabel: "今天",
     showDates: false,
-    content: "",
+    project: null,
     loading: true,
-    noNews: false,
+    noProject: false,
   },
 
   onLoad() {
@@ -23,8 +23,8 @@ Page({
     try {
       const today = getApp().globalData.today;
 
-      const summaryDates = await getSummaryDates();
-      const formatted = summaryDates.map((d) => ({
+      const projectDates = await getProjectDates();
+      const formatted = projectDates.map((d) => ({
         ...d,
         label: this._formatLabel(d.date, today),
       }));
@@ -44,24 +44,24 @@ Page({
         currentLabel: current ? current.label : "今天",
       });
 
-      this.loadSummary(currentDate);
-    } catch {
+      this.loadProject(currentDate);
+    } catch (e) {
       this.setData({ loading: false });
     }
   },
 
-  async loadSummary(date) {
+  async loadProject(date) {
     if (!date) return;
-    this.setData({ loading: true, content: "", noNews: false });
+    this.setData({ loading: true, project: null, noProject: false });
 
     try {
-      const result = await getSummary(date);
-      this.setData({ content: result.content, loading: false });
+      const result = await getProject(date);
+      this.setData({ project: result, loading: false });
     } catch (e) {
-      if (e.msg && e.msg.includes("暂无")) {
-        this.setData({ loading: false, content: "" });
+      if (e.msg && (e.msg.includes("暂无") || e.msg.includes("404"))) {
+        this.setData({ loading: false, noProject: true });
       } else {
-        this.setData({ loading: false, noNews: true });
+        this.setData({ loading: false, noProject: true });
       }
     }
   },
@@ -78,7 +78,7 @@ Page({
       currentLabel: target ? target.label : date,
       showDates: false,
     });
-    this.loadSummary(date);
+    this.loadProject(date);
   },
 
   _formatLabel(dateStr, today) {

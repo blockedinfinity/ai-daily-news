@@ -100,6 +100,24 @@ def init_db():
             news_ids    TEXT DEFAULT '[]',
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS daily_projects (
+            id              SERIAL PRIMARY KEY,
+            date            TEXT UNIQUE NOT NULL,
+            name            TEXT NOT NULL,
+            description     TEXT DEFAULT '',
+            url             TEXT DEFAULT '',
+            stars           INTEGER DEFAULT 0,
+            stars_today     INTEGER DEFAULT 0,
+            language        TEXT DEFAULT '',
+            intro_what      TEXT DEFAULT '',
+            intro_why       TEXT DEFAULT '',
+            intro_how       TEXT DEFAULT '',
+            cover_image_url TEXT DEFAULT '',
+            source          TEXT DEFAULT '',
+            ai_reason       TEXT DEFAULT '',
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     """)
     # 创建索引（忽略已存在）
     for idx_sql in [
@@ -372,6 +390,81 @@ def get_summary_dates():
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
             "SELECT date FROM daily_summary ORDER BY date DESC"
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        _putback(conn)
+
+
+# ── daily_projects ────────────────────────────────────────────
+
+def save_project(item):
+    """Upsert 每日精品项目。返回 True/False。"""
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO daily_projects
+               (date, name, description, url, stars, stars_today, language,
+                intro_what, intro_why, intro_how, cover_image_url, source, ai_reason)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+               ON CONFLICT(date) DO UPDATE SET
+                 name=EXCLUDED.name, description=EXCLUDED.description, url=EXCLUDED.url,
+                 stars=EXCLUDED.stars, stars_today=EXCLUDED.stars_today, language=EXCLUDED.language,
+                 intro_what=EXCLUDED.intro_what, intro_why=EXCLUDED.intro_why,
+                 intro_how=EXCLUDED.intro_how, cover_image_url=EXCLUDED.cover_image_url,
+                 source=EXCLUDED.source, ai_reason=EXCLUDED.ai_reason""",
+            (today,
+             item.get("name", ""),
+             item.get("description", ""),
+             item.get("url", ""),
+             item.get("stars", 0),
+             item.get("stars_today", 0),
+             item.get("language", ""),
+             item.get("intro_what", ""),
+             item.get("intro_why", ""),
+             item.get("intro_how", ""),
+             item.get("cover_image_url", ""),
+             item.get("source", ""),
+             item.get("ai_reason", "")),
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise
+    finally:
+        try:
+            cur.close()
+        except Exception:
+            pass
+        _putback(conn)
+
+
+def get_project_by_date(date_str):
+    """返回指定日期的精品项目，或 None。"""
+    conn = _connect()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT * FROM daily_projects WHERE date = %s", (date_str,)
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        _putback(conn)
+
+
+def get_project_dates():
+    """返回有精品项目的日期列表（按日期倒序）。"""
+    conn = _connect()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT date FROM daily_projects ORDER BY date DESC"
         )
         rows = cur.fetchall()
         return [dict(r) for r in rows]
