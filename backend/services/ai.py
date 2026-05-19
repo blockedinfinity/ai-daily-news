@@ -7,7 +7,7 @@ import os
 from openai import OpenAI
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+BASE_URL = os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com/v1"
 MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 logger = logging.getLogger(__name__)
 
@@ -141,11 +141,18 @@ def batch_summarize(news_list):
   "daily_digest": "今日AI行业日报（300字以内，整体趋势+要点概述）"
 }}"""
 
-    response = deepseek_call(
-        prompt,
-        system="你是一个AI新闻分析师，用JSON格式返回结构化分析结果。",
-    )
-    items, digest = parse_batch_result(response)
+    try:
+        response = deepseek_call(
+            prompt,
+            system="你是一个AI新闻分析师，用JSON格式返回结构化分析结果。",
+        )
+        items, digest = parse_batch_result(response)
+    except Exception as e:
+        logger.warning("批量摘要生成失败: %s", e)
+        # 降级：返回原文 + 占位摘要
+        for n in need_summary:
+            n["summary"] = ""
+        return need_summary + already_done, "AI 摘要生成失败，请稍后重试"
 
     # 用标题匹配：支持中文标题（翻译后）或原始英文标题
     summary_map = {s["title"]: s for s in items}
