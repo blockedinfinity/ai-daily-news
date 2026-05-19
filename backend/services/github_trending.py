@@ -21,7 +21,6 @@ if GITHUB_TOKEN:
 
 
 def _strip_html(text):
-    import re
     text = re.sub(r"<[^>]+>", "", text or "")
     return re.sub(r"\s+", " ", text).strip()
 
@@ -51,50 +50,65 @@ def fetch_trending_repos(limit=20, language="Python"):
 
 def _parse_trending_html(html, limit):
     """解析 GitHub Trending HTML，提取项目信息。"""
-    import re
-
     items = []
-    # 匹配每个仓库条目
-    # <h2 class="h3"><a href="/user/repo">...
-    repo_pattern = re.compile(
-        r'<h2\s+class="[^"]*h3[^"]*">\s*<a\s+href="/([^"/]+)/([^"]+)"[^>]*>(?:[^<]*?)</a>',
-        re.S,
+
+    # 匹配每个 article 块
+    article_pattern = re.compile(r"<article[^>]*>(.*?)</article>", re.DOTALL)
+    # 仓库名：两步走
+    # 1. 找到 h2 块
+    h2_pattern = re.compile(r"<h2[^>]*>(.*?)</h2>", re.DOTALL)
+    # 2. 在 h2 块中找到 repo href（/author/repo 格式，排除 login/forks 等）
+    href_in_h2 = re.compile(r'href="(/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+)"')
+    # 描述：<p class="...color-fg-muted...">文字</p>
+    desc_pattern = re.compile(
+        r'<p\s+class="[^"]*color-fg-muted[^"]*"[^>]*>(.*?)</p>',
+        re.DOTALL,
     )
-    # 匹配 description
-    desc_pattern = re.compile(r'<p[^>]*class="[^"]*color-fg-muted[^"]*"[^>]*>(.*?)</p>', re.S)
-    # 匹配语言标签
-    lang_pattern = re.compile(r'<span[^>]+class="[^"]*color-fg-[^"]*[^"]*"[^>]*>\s*(\w+)\s*</span>')
-    # 匹配今日 stars
-    stars_today_pattern = re.compile(r'(\d[\d,]*(?:\.\d)?[kKmM]?)\s*stars\s+today', re.I)
+    # 语言：<span itemprop="programmingLanguage">Python</span>
+    lang_pattern = re.compile(
+        r'<span\s+itemprop="programmingLanguage"[^>]*>([^<]+)</span>',
+    )
+    # 今日 stars：...文字... 1,439 stars today
+    stars_today_pattern = re.compile(
+        r'([\d,]+)\s+stars\s+today',
+        re.I,
+    )
+    # 总 stars：紧跟在 star SVG 后面的数字
+    stars_pattern = re.compile(
+        r'<svg[^>]+aria-label=["\']star["\'][^>]*>.*?</svg>\s*([\d,]+)',
+        re.DOTALL,
+    )
 
-    # 更通用的解析：找到所有 article 块
-    article_pattern = re.compile(r'<article[^>]*>(.*?)</article>', re.S)
     for article in article_pattern.findall(html)[:limit]:
-        repo_match = repo_pattern.search(article)
-        if not repo_match:
+        h2_match = h2_pattern.search(article)
+        if not h2_match:
             continue
+        # 在 h2 块中找 /author/repo 格式的 href
+        href_match = href_in_h2.search(h2_match.group(1))
+        if not href_match:
+            continue
+        name = href_match.group(1).lstrip("/")
+        url = f"https://github.com/{name}"
 
-        author, repo_name = repo_match.groups()
-        name = f"{author}/{repo_name}"
+        # 描述
+        desc_m = desc_pattern.search(article)
+        description = _strip_html(desc_m.group(1)).strip() if desc_m else ""
 
-        # description
-        desc_match = desc_pattern.search(article)
-        description = ""
-        if desc_match:
-            description = _strip_html(desc_match.group(1)).strip()
+        # 语言
+        lang_m = lang_pattern.search(article)
+        language = lang_m.group(1).strip() if lang_m else ""
 
-        # language
-        lang_match = lang_pattern.search(article)
-        language = lang_match.group(1) if lang_match else ""
-
-        # stars_today
-        stars_today = 0
-        st_match = stars_today_pattern.search(article)
-        if st_match:
-            stars_today = _parse_count(st_match.group(1))
-
-        # total stars（从 XML/rss 不返回，需要爬详情页或用 API）
+        # 总 stars
         stars = 0
+        st_m = stars_pattern.search(article)
+        if st_m:
+            stars = int(st_m.group(1).replace(",", ""))
+
+        # 今日 stars
+        stars_today = 0
+        stoday_m = stars_today_pattern.search(article)
+        if stoday_m:
+            stars_today = int(stoday_m.group(1).replace(",", ""))
 
         items.append({
             "name": name,
@@ -102,25 +116,12 @@ def _parse_trending_html(html, limit):
             "stars": stars,
             "stars_today": stars_today,
             "language": language,
-            "url": f"https://github.com/{name}",
+            "url": url,
             "source": "GitHub Trending",
         })
 
     logger.info("GitHub Trending 解析出 %d 个项目", len(items))
     return items
-
-
-def _parse_count(s):
-    """解析 '1.2k', '500', '3.5M' 等格式为整数。"""
-    s = s.strip().replace(",", "")
-    if s.lower().endswith("k"):
-        return int(float(s[:-1]) * 1000)
-    if s.lower().endswith("m"):
-        return int(float(s[:-1]) * 1_000_000)
-    try:
-        return int(float(s))
-    except (ValueError, TypeError):
-        return 0
 
 
 # ── GitHub Search API ────────────────────────────────────────
