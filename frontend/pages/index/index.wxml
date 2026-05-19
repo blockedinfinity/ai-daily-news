@@ -1,7 +1,7 @@
 <view class="page">
   <!-- 顶部 Header -->
   <view class="header">
-    <text class="title">AI Daily News</text>
+    <text class="title">Awake in AI</text>
   </view>
 
   <!-- 日期选择器 -->
