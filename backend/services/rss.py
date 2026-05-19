@@ -15,19 +15,25 @@ REQUEST_TIMEOUT = 15
 PER_SOURCE_LIMIT = 10
 MAX_CONTENT_LENGTH = 2000
 
-SOURCES = [
-    # 中文源
-    {"name": "量子位", "url": "https://www.qbitai.com/feed"},
-    {"name": "少数派", "url": "https://sspai.com/feed"},
-    # 海外源
+# ── 技术权威源 ───────────────────────────────────────────────
+TECH_SOURCES = [
     {"name": "Hacker News", "url": "https://hnrss.org/frontpage?points=100"},
     {"name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/"},
     {"name": "MIT Tech Review", "url": "https://www.technologyreview.com/feed/"},
     {"name": "Google AI Blog", "url": "https://blog.google/innovation-and-ai/technology/ai/rss/"},
     {"name": "Wired AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss"},
     {"name": "VentureBeat AI", "url": "https://venturebeat.com/category/ai/feed/"},
+]
+
+# ── AI 媒体源 ────────────────────────────────────────────────
+MEDIA_SOURCES = [
+    {"name": "量子位", "url": "https://www.qbitai.com/feed"},
+    {"name": "少数派", "url": "https://sspai.com/feed"},
     {"name": "The Verge AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"},
 ]
+
+# 兼容旧接口
+SOURCES = TECH_SOURCES + MEDIA_SOURCES
 
 
 def _strip_html(text):
@@ -143,12 +149,12 @@ def fetch_source(source):
     return items
 
 
-def fetch_news():
-    """并行抓取所有 RSS 源。返回 [dict, ...]，每条含 title/url/source/content/published_at。"""
+def _fetch_sources(source_list):
+    """通用：并行抓取指定的 RSS 源列表。"""
     all_news = []
     try:
         with ThreadPoolExecutor(max_workers=5) as pool:
-            fut_map = {pool.submit(fetch_source, s): s for s in SOURCES}
+            fut_map = {pool.submit(fetch_source, s): s for s in source_list}
             for future in as_completed(fut_map, timeout=60):
                 try:
                     items = future.result(timeout=20)
@@ -160,3 +166,18 @@ def fetch_news():
         logger.error("RSS 抓取总错误: %s", e)
     logger.info("本次共抓取 %d 条新闻", len(all_news))
     return all_news
+
+
+def fetch_tech_news():
+    """抓取技术权威源。"""
+    return _fetch_sources(TECH_SOURCES)
+
+
+def fetch_media_news():
+    """抓取 AI 媒体源。"""
+    return _fetch_sources(MEDIA_SOURCES)
+
+
+def fetch_news():
+    """并行抓取所有 RSS 源（兼容旧接口）。"""
+    return _fetch_sources(SOURCES)
