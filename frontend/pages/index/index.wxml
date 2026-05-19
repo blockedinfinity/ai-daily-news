@@ -2,7 +2,6 @@
   <!-- 顶部 Header -->
   <view class="header">
     <text class="title">AI Daily News</text>
-    <text class="subtitle">每日 AI 行业新闻精选</text>
   </view>
 
   <!-- 日期选择器 -->

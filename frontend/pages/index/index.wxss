@@ -15,6 +15,7 @@
   color: #111;
   display: block;
   letter-spacing: 1rpx;
+  text-align: center;
 }
 
 .header .subtitle {

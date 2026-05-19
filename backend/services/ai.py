@@ -95,6 +95,10 @@ def batch_translate(items):
         if i in en_idx and i in tmap:
             item["title_cn"] = tmap[i].get("title_cn", item["title"])
             item["content_cn"] = tmap[i].get("content_cn", item.get("content", ""))
+        elif i in en_idx:
+            # 翻译失败：保持空，让 _cn() 不覆盖，前端显示原文
+            item["title_cn"] = ""
+            item["content_cn"] = ""
         else:
             item["title_cn"] = item.get("title", "")
             item["content_cn"] = item.get("content", "")
