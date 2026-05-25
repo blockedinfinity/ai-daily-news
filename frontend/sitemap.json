@@ -2,7 +2,19 @@
   "rules": [
     {
       "action": "allow",
-      "page": "*"
+      "page": "pages/index/index"
+    },
+    {
+      "action": "allow",
+      "page": "pages/summary/summary"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/detail/*"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/webview/*"
     }
   ]
 }

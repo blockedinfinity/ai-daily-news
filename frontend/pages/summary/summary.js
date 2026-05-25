@@ -1,4 +1,5 @@
 import { getProjectDates, getProject } from "../../utils/api";
+import { formatLabel } from "../../utils/util";
 
 Page({
   data: {
@@ -26,7 +27,7 @@ Page({
       const projectDates = await getProjectDates();
       const formatted = projectDates.map((d) => ({
         ...d,
-        label: this._formatLabel(d.date, today),
+        label: formatLabel(d.date, today),
       }));
 
       // 确保今天始终在列表中
@@ -81,26 +82,19 @@ Page({
     this.loadProject(date);
   },
 
-  _formatLabel(dateStr, today) {
-    if (dateStr === today) return "今天";
-    const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
-    const d = new Date(dateStr);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr =
-      yesterday.getFullYear() +
-      "-" +
-      String(yesterday.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(yesterday.getDate()).padStart(2, "0");
+  /** 分享给微信好友 */
+  onShareAppMessage() {
+    const date = this.data.currentDate || "";
+    return {
+      title: "AI 精品项目推荐 - 每日精选",
+      path: `/pages/summary/summary?date=${date}`,
+    };
+  },
 
-    if (dateStr === yesterdayStr) return "昨天";
-    return (
-      String(d.getMonth() + 1).padStart(2, "0") +
-      "/" +
-      String(d.getDate()).padStart(2, "0") +
-      " 周" +
-      weekDays[d.getDay()]
-    );
+  /** 分享到朋友圈 */
+  onShareTimeline() {
+    return {
+      title: "AI 精品项目推荐 - 每日精选",
+    };
   },
 });

@@ -20,7 +20,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelna
 app = Flask(__name__)
 
 # CORS: 只允许小程序请求和本地开发
-_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
+_ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://ai-daily-news.onrender.com,http://localhost:*,http://127.0.0.1:*",
+)
 CORS(app, resources={r"/api/*": {"origins": _ALLOWED_ORIGINS.split(",") if _ALLOWED_ORIGINS != "*" else "*"}})
 
 # 内部操作密钥（防止外部调用 /api/fetch 等端点）

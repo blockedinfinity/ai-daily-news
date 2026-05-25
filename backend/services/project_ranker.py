@@ -44,13 +44,37 @@ JSON 格式返回：
 """
 
 
+def _extract_json(text):
+    """从 AI 回复中健壮地提取 JSON 对象。"""
+    m = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+    if m:
+        return json.loads(m.group(1))
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end > start:
+        return json.loads(text[start:end+1])
+    raise ValueError("未找到 JSON")
+
+
+def _fallback_select(candidates):
+    """DeepSeek 不可用时，按热度分数回退选择。"""
+    scored = sorted(
+        candidates,
+        key=lambda x: (x.get("stars", 0) or 0) + (x.get("stars_today", 0) or 0) * 2,
+        reverse=True,
+    )
+    best = dict(scored[0])
+    best["ai_reason"] = "今日热门项目（AI 精选暂不可用，按社区热度回退）"
+    logger.info("回退精选项目(按热度): %s", best.get("name"))
+    return best
+
+
 def rank_and_select_project(candidates):
     """从候选项目中 AI 精选 1 个。返回 dict 或 None。"""
     if not candidates:
         logger.warning("无候选项目，跳过精选")
         return None
 
-    # 限制输入 token：最多 25 个候选
     limited = candidates[:25]
 
     lines = []
@@ -75,8 +99,7 @@ def rank_and_select_project(candidates):
             temperature=0.2,
             max_tokens=1024,
         )
-        text = response.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-        result = json.loads(text)
+        result = _extract_json(response)
 
         sel = result.get("selected")
         if not sel or sel.get("selected") is None and sel.get("name") is None:
@@ -94,8 +117,8 @@ def rank_and_select_project(candidates):
         return selected
 
     except Exception as e:
-        logger.error("项目精选失败: %s", e)
-        return None
+        logger.warning("DeepSeek 项目精选失败(%s)，回退到按热度选择", e)
+        return _fallback_select(limited)
 
 
 # ── 三点极简介绍生成 ─────────────────────────────────────────
@@ -142,8 +165,7 @@ def generate_project_intro(project):
             temperature=0.3,
             max_tokens=512,
         )
-        text = response.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-        result = json.loads(text)
+        result = _extract_json(response)
 
         project["intro_what"] = result.get("intro_what", "").strip()
         project["intro_why"] = result.get("intro_why", "").strip()

@@ -1,11 +1,11 @@
 {
   "setting": {
     "es6": true,
-    "postcss": false,
+    "postcss": true,
     "compileWorklet": false,
-    "minified": false,
-    "uglifyFileName": false,
-    "uploadWithSourceMap": true,
+    "minified": true,
+    "uglifyFileName": true,
+    "uploadWithSourceMap": false,
     "enhance": true,
     "packNpmManually": false,
     "packNpmRelationList": [],
@@ -29,7 +29,7 @@
     "ignore": [],
     "include": []
   },
-  "appid": "wx2da7f2ac6b6062b6",
+  "appid": "wxc58f93782f3a8e7c",
   "editorSetting": {},
   "libVersion": "3.16.0"
 }

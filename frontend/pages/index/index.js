@@ -1,4 +1,5 @@
 import { getNewsByDate, getAvailableDates } from "../../utils/api";
+import { formatLabel } from "../../utils/util";
 
 const app = getApp();
 const PAGE_SIZE = 5;
@@ -16,6 +17,8 @@ Page({
     displayCount: PAGE_SIZE,
     allLoaded: false,
     loadingMore: false,
+    initialLoadDone: false,   // 标记初始加载是否完成
+    lastLoadTime: 0,           // 上次加载时间戳（毫秒）
   },
 
   _allItems: [],
@@ -25,7 +28,14 @@ Page({
   },
 
   onShow() {
-    if (this.data.currentDate) {
+    const now = Date.now();
+    // 避免重复请求：初始加载未完成，或距上次加载不足 30 秒时跳过
+    if (this.data.currentDate && !this.data.initialLoadDone) {
+      this.setData({ lastLoadTime: now });
+      this.loadNews(this.data.currentDate, true);
+    } else if (this.data.currentDate && now - this.data.lastLoadTime > 30 * 1000) {
+      // 距上次加载超过 30 秒，静默刷新
+      this.setData({ lastLoadTime: now });
       this.loadNews(this.data.currentDate, true);
     }
   },
@@ -60,7 +70,7 @@ Page({
 
       const formatted = dates.map((d) => ({
         ...d,
-        label: this._formatLabel(d.date, today),
+        label: formatLabel(d.date, today),
       }));
 
       const currentDate = formatted.length > 0 ? formatted[0].date : today;
@@ -93,6 +103,8 @@ Page({
         allLoaded: displayCount >= this._allItems.length,
         loading: false,
         error: "",
+        initialLoadDone: true,
+        lastLoadTime: Date.now(),
       });
     } catch {
       if (!silent) {
@@ -111,14 +123,10 @@ Page({
       });
       return;
     }
-    this.setData({ loadingMore: true });
-    setTimeout(() => {
-      this.setData({
-        newsList: this._allItems.slice(0, nextCount),
-        displayCount: nextCount,
-        loadingMore: false,
-      });
-    }, 300);
+    this.setData({
+      newsList: this._allItems.slice(0, nextCount),
+      displayCount: nextCount,
+    });
   },
 
   switchDate(e) {
@@ -144,26 +152,18 @@ Page({
     });
   },
 
-  _formatLabel(dateStr, today) {
-    if (dateStr === today) return "今天";
-    const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
-    const d = new Date(dateStr);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr =
-      yesterday.getFullYear() +
-      "-" +
-      String(yesterday.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(yesterday.getDate()).padStart(2, "0");
+  /** 分享给微信好友 */
+  onShareAppMessage() {
+    return {
+      title: "AI 日报 - 每日 AI 资讯一览",
+      path: "/pages/index/index",
+    };
+  },
 
-    if (dateStr === yesterdayStr) return "昨天";
-    return (
-      String(d.getMonth() + 1).padStart(2, "0") +
-      "/" +
-      String(d.getDate()).padStart(2, "0") +
-      " 周" +
-      weekDays[d.getDay()]
-    );
+  /** 分享到朋友圈 */
+  onShareTimeline() {
+    return {
+      title: "AI 日报 - 每日 AI 资讯一览",
+    };
   },
 });

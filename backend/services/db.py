@@ -45,17 +45,25 @@ def _connect():
     if p:
         conn = p.getconn()
         conn.autocommit = False
+        conn.set_client_encoding('UTF8')
         return conn
     # 回退：无连接池时直接创建
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = False
+    conn.set_client_encoding('UTF8')
     return conn
 
 
 def _putback(conn):
-    """将连接归还连接池。"""
+    """将连接归还连接池，重置事务状态。
+
+    调用 conn.rollback() 确保不会把未提交的事务带回到连接池中，
+    避免下一个复用该连接的请求读到脏数据或被阻塞。
+    对于已经 commit 的写操作，rollback 是 no-op，无副作用。
+    """
     if _pool and conn:
         try:
+            conn.rollback()
             _pool.putconn(conn)
         except Exception:
             try:
@@ -76,67 +84,72 @@ def _cn(d):
 
 def init_db():
     conn = _connect()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS news (
-            id          SERIAL PRIMARY KEY,
-            title       TEXT NOT NULL,
-            url         TEXT DEFAULT '',
-            source      TEXT DEFAULT '',
-            content     TEXT DEFAULT '',
-            summary     TEXT DEFAULT '',
-            title_cn    TEXT DEFAULT '',
-            content_cn  TEXT DEFAULT '',
-            image_url   TEXT DEFAULT '',
-            published_at TIMESTAMP,
-            date        TEXT NOT NULL,
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS news (
+                id          SERIAL PRIMARY KEY,
+                title       TEXT NOT NULL,
+                url         TEXT DEFAULT '',
+                source      TEXT DEFAULT '',
+                content     TEXT DEFAULT '',
+                summary     TEXT DEFAULT '',
+                title_cn    TEXT DEFAULT '',
+                content_cn  TEXT DEFAULT '',
+                image_url   TEXT DEFAULT '',
+                published_at TIMESTAMP,
+                date        TEXT NOT NULL,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
 
-        CREATE TABLE IF NOT EXISTS daily_summary (
-            id          SERIAL PRIMARY KEY,
-            date        TEXT UNIQUE NOT NULL,
-            content     TEXT NOT NULL,
-            news_ids    TEXT DEFAULT '[]',
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
+            CREATE TABLE IF NOT EXISTS daily_summary (
+                id          SERIAL PRIMARY KEY,
+                date        TEXT UNIQUE NOT NULL,
+                content     TEXT NOT NULL,
+                news_ids    TEXT DEFAULT '[]',
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
 
-        CREATE TABLE IF NOT EXISTS daily_projects (
-            id              SERIAL PRIMARY KEY,
-            date            TEXT UNIQUE NOT NULL,
-            name            TEXT NOT NULL,
-            description     TEXT DEFAULT '',
-            url             TEXT DEFAULT '',
-            stars           INTEGER DEFAULT 0,
-            stars_today     INTEGER DEFAULT 0,
-            language        TEXT DEFAULT '',
-            intro_what      TEXT DEFAULT '',
-            intro_why       TEXT DEFAULT '',
-            intro_how       TEXT DEFAULT '',
-            cover_image_url TEXT DEFAULT '',
-            source          TEXT DEFAULT '',
-            ai_reason       TEXT DEFAULT '',
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-    # 创建索引（忽略已存在）
-    for idx_sql in [
-        "CREATE INDEX IF NOT EXISTS idx_news_date ON news(date)",
-        "CREATE INDEX IF NOT EXISTS idx_news_url ON news(url)",
-        "CREATE INDEX IF NOT EXISTS idx_summary_date ON daily_summary(date)",
-    ]:
+            CREATE TABLE IF NOT EXISTS daily_projects (
+                id              SERIAL PRIMARY KEY,
+                date            TEXT UNIQUE NOT NULL,
+                name            TEXT NOT NULL,
+                description     TEXT DEFAULT '',
+                url             TEXT DEFAULT '',
+                stars           INTEGER DEFAULT 0,
+                stars_today     INTEGER DEFAULT 0,
+                language        TEXT DEFAULT '',
+                intro_what      TEXT DEFAULT '',
+                intro_why       TEXT DEFAULT '',
+                intro_how       TEXT DEFAULT '',
+                cover_image_url TEXT DEFAULT '',
+                source          TEXT DEFAULT '',
+                ai_reason       TEXT DEFAULT '',
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        # 创建索引（忽略已存在）
+        for idx_sql in [
+            "CREATE INDEX IF NOT EXISTS idx_news_date ON news(date)",
+            "CREATE INDEX IF NOT EXISTS idx_news_url ON news(url)",
+            "CREATE INDEX IF NOT EXISTS idx_summary_date ON daily_summary(date)",
+        ]:
+            try:
+                cur.execute(idx_sql)
+            except psycopg2.Error:
+                pass
+        # 迁移：为旧表添加 image_url 字段（忽略已存在）
         try:
-            cur.execute(idx_sql)
+            cur.execute("ALTER TABLE news ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''")
         except psycopg2.Error:
             pass
-    # 迁移：为旧表添加 image_url 字段（忽略已存在）
-    try:
-        cur.execute("ALTER TABLE news ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''")
-    except psycopg2.Error:
-        pass
-    conn.commit()
-    _putback(conn)
-    return
+        conn.commit()
+    finally:
+        try:
+            cur.close()
+        except Exception:
+            pass
+        _putback(conn)
 
 
 # ── batch ────────────────────────────────────────────────────

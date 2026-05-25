@@ -71,4 +71,22 @@ Page({
       urls: [src],
     });
   },
+
+  /** 分享给微信好友 */
+  onShareAppMessage() {
+    const news = this.data.news;
+    if (!news) return { title: "AI 日报 - 新闻详情" };
+    return {
+      title: news.title || "AI 日报 - 新闻详情",
+      path: `/pages/detail/detail?id=${news.id}`,
+    };
+  },
+
+  /** 分享到朋友圈 */
+  onShareTimeline() {
+    const news = this.data.news;
+    return {
+      title: news?.title || "AI 日报 - 新闻详情",
+    };
+  },
 });
