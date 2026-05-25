@@ -338,6 +338,27 @@ def list_project_dates():
     return success(db.get_project_dates())
 
 
+@app.route("/api/project/intro", methods=["POST"])
+def regenerate_project_intro():
+    """为指定日期的项目重新生成三点介绍。"""
+    auth = _check_internal()
+    if auth:
+        return auth
+    body = request.get_json(force=True) if request.is_json else {}
+    date_str = body.get("date") or request.args.get("date", "") or date.today().isoformat()
+    from services.project_ranker import generate_project_intro
+    project = db.get_project_by_date(date_str)
+    if not project:
+        return error("该日期暂无项目", code=404, status=404)
+    project = generate_project_intro(project)
+    db.save_project(project)
+    return success({
+        "intro_what": project.get("intro_what"),
+        "intro_why": project.get("intro_why"),
+        "intro_how": project.get("intro_how"),
+    })
+
+
 # ── startup ──────────────────────────────────────────────────
 
 # 确保 WSGI 导入时也初始化数据库
