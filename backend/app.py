@@ -138,6 +138,19 @@ def delete_news(news_id):
     return success(None, "删除成功")
 
 
+@app.route("/api/news/batch", methods=["DELETE"])
+def batch_delete_news():
+    """批量删除指定日期之前（含该日期）的新闻。"""
+    auth = _check_internal()
+    if auth:
+        return auth
+    date = request.args.get("date", "")
+    if not date:
+        return error("缺少 date 参数")
+    deleted = db.batch_delete_news_before(date)
+    return success({"deleted": deleted}, f"已删除 {deleted} 条")
+
+
 @app.route("/api/news/<int:news_id>/summarize", methods=["POST"])
 def summarize_news_route(news_id):
     """手动触发单条新闻 AI 摘要。"""

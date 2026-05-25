@@ -79,7 +79,8 @@ def batch_translate(items):
         "- Keep company/product/model names unchanged\n"
         "- Output natural Chinese\n\n"
         + "\n\n---\n\n".join(lines)
-        + "\n\nReturn JSON array only: [{\"index\": 0, \"title_cn\": \"...\", \"content_cn\": \"...\"}, ...]"
+        + f"\n\nReturn a JSON array with exactly {len(en_idx)} objects, one per index above. "
+        + 'Example: [{"index": 0, "title_cn": "...", "content_cn": "..."}, {"index": 1, "title_cn": "...", "content_cn": "..."}]'
     )
 
     try:
@@ -132,6 +133,7 @@ def batch_summarize(news_list):
     prompt += f"""
 
 请对以上 {len(need_summary)} 条新闻逐条总结，并生成今日日报。
+items 数组必须恰好包含 {len(need_summary)} 个元素，每条新闻对应一个。
 严格按照 JSON 格式返回（不要 markdown 代码块）：
 {{
   "items": [

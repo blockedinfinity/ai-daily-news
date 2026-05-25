@@ -333,6 +333,22 @@ def delete_news(news_id):
         _putback(conn)
 
 
+def batch_delete_news_before(date_str):
+    """删除指定日期之前（含该日期）的所有新闻。返回删除条数。"""
+    conn = _connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM news WHERE date <= %s", (date_str,))
+        count = cur.rowcount
+        conn.commit()
+        return count
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        _putback(conn)
+
+
 def get_available_dates():
     conn = _connect()
     try:
