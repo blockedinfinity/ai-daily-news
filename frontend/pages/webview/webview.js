@@ -1,6 +1,8 @@
 Page({
   data: {
     url: "",
+    content: "",
+    contentTitle: "",
     loading: true,
     showFallback: false,
     canUseClipboard: true,
@@ -15,6 +17,16 @@ Page({
       return;
     }
     this.setData({ url });
+    // 读取从详情页传递的原文内容（用于 webview 兜底展示）
+    const app = getApp();
+    if (app.globalData.pendingNewsContent) {
+      this.setData({
+        content: app.globalData.pendingNewsContent,
+        contentTitle: app.globalData.pendingNewsTitle || '',
+      });
+      app.globalData.pendingNewsContent = '';
+      app.globalData.pendingNewsTitle = '';
+    }
     // 设置超时：如果 8 秒后 web-view 还没加载完成，显示兜底提示
     this._timer = setTimeout(() => {
       if (!this.data.loaded) {

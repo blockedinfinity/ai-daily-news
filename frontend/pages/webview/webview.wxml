@@ -14,7 +14,7 @@
     bindload="onWebviewLoad"
   ></web-view>
 
-  <!-- 错误兜底：复制链接 + 外部打开 -->
+  <!-- 错误兜底：复制链接 + 外部打开 + 原文内容 -->
   <view class="fallback" wx:if="{{showFallback}}">
     <view class="fallback-card">
       <text class="fallback-icon">⚠️</text>
@@ -27,6 +27,14 @@
         <button class="btn-copy" bind:tap="copyUrl">复制链接</button>
         <button class="btn-open" bind:tap="openExternal" wx:if="{{canUseClipboard}}">用浏览器打开</button>
       </view>
+    </view>
+
+    <!-- 原文内容回退 -->
+    <view class="content-section" wx:if="{{content}}">
+      <view class="section-header">
+        <text class="section-label">原文内容</text>
+      </view>
+      <text class="content-body">{{content}}</text>
     </view>
   </view>
 </view>

@@ -47,6 +47,10 @@ Page({
   openUrl() {
     const url = this.data.news?.url;
     if (!url) return;
+    // 传递原文内容给 webview 页面，用于 webview 加载失败时回退显示
+    const news = this.data.news || {};
+    app.globalData.pendingNewsContent = news.content || '';
+    app.globalData.pendingNewsTitle = news.title || '';
     wx.navigateTo({
       url: "/pages/webview/webview?url=" + encodeURIComponent(url),
     });

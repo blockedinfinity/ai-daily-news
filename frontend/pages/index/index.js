@@ -22,6 +22,7 @@ Page({
   },
 
   _allItems: [],
+  _loadingDate: "", // 当前正在加载的日期，用于防竞态
 
   onLoad() {
     this.loadDates();
@@ -91,10 +92,12 @@ Page({
 
   async loadNews(date, silent = false) {
     if (!date) return;
+    this._loadingDate = date;
     if (!silent) this.setData({ loading: true, error: "" });
 
     try {
       const result = await getNewsByDate(date);
+      if (date !== this._loadingDate) return; // 丢弃过期响应（用户已切换日期）
       this._allItems = result.items || [];
       const displayCount = Math.min(PAGE_SIZE, this._allItems.length);
       this.setData({
@@ -129,7 +132,7 @@ Page({
     });
   },
 
-  switchDate(e) {
+  async switchDate(e) {
     const { date } = e.currentTarget.dataset;
     if (date === this.data.currentDate) {
       this.setData({ showDates: false });
@@ -142,7 +145,7 @@ Page({
       currentCount: target ? (target.count || 0) : 0,
       showDates: false,
     });
-    this.loadNews(date);
+    await this.loadNews(date);
   },
 
   goDetail(e) {
