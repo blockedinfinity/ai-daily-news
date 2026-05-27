@@ -30,12 +30,8 @@ Page({
 
   onShow() {
     const now = Date.now();
-    // 避免重复请求：初始加载未完成，或距上次加载不足 30 秒时跳过
-    if (this.data.currentDate && !this.data.initialLoadDone) {
-      this.setData({ lastLoadTime: now });
-      this.loadNews(this.data.currentDate, true);
-    } else if (this.data.currentDate && now - this.data.lastLoadTime > 30 * 1000) {
-      // 距上次加载超过 30 秒，静默刷新
+    // 只在初始加载完成后且距上次加载超过 30 秒时才静默刷新
+    if (this.data.initialLoadDone && this.data.currentDate && now - this.data.lastLoadTime > 30 * 1000) {
       this.setData({ lastLoadTime: now });
       this.loadNews(this.data.currentDate, true);
     }
@@ -117,19 +113,30 @@ Page({
   },
 
   loadMore() {
+    this.setData({ loadingMore: true });
     const nextCount = this.data.displayCount + PAGE_SIZE;
     if (nextCount >= this._allItems.length) {
       this.setData({
         newsList: this._allItems,
         displayCount: this._allItems.length,
         allLoaded: true,
+        loadingMore: false,
       });
       return;
     }
     this.setData({
       newsList: this._allItems.slice(0, nextCount),
       displayCount: nextCount,
+      loadingMore: false,
     });
+  },
+
+  onRetry() {
+    if (this.data.currentDate) {
+      this.loadNews(this.data.currentDate);
+    } else {
+      this.loadDates();
+    }
   },
 
   async switchDate(e) {

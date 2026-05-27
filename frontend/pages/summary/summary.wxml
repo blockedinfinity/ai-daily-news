@@ -28,6 +28,13 @@
     <text class="loading-text">加载中...</text>
   </view>
 
+  <!-- 错误态 -->
+  <view class="error" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
+    <text class="error-text">{{error}}</text>
+    <view class="error-retry" bind:tap="onRetry">点击重试</view>
+  </view>
+
   <!-- 无项目 -->
   <view class="no-project" wx:elif="{{noProject}}">
     <text class="icon">🔍</text>

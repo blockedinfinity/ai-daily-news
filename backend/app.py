@@ -85,18 +85,27 @@ def list_news():
     page = int(request.args.get("page", 1))
     if not date:
         return error("缺少 date 参数")
-    items, total = db.get_news_by_date(date, page)
+    try:
+        items, total = db.get_news_by_date(date, page)
+    except Exception:
+        return error("数据库连接失败", status=503)
     return success({"items": items, "total": total, "page": page, "per_page": 20})
 
 
 @app.route("/api/news/today", methods=["GET"])
 def today_news():
-    return success(db.get_today_news())
+    try:
+        return success(db.get_today_news())
+    except Exception:
+        return error("数据库连接失败", status=503)
 
 
 @app.route("/api/news/<int:news_id>", methods=["GET"])
 def get_news(news_id):
-    news = db.get_news(news_id)
+    try:
+        news = db.get_news(news_id)
+    except Exception:
+        return error("数据库连接失败", status=503)
     if not news:
         return error("新闻不存在", code=404, status=404)
     return success(news)
@@ -179,13 +188,19 @@ def summarize_news_route(news_id):
 
 @app.route("/api/dates", methods=["GET"])
 def list_dates():
-    return success(db.get_available_dates())
+    try:
+        return success(db.get_available_dates())
+    except Exception:
+        return error("数据库连接失败", status=503)
 
 
 @app.route("/api/summary-dates", methods=["GET"])
 def list_summary_dates():
     """返回有 AI 总结的日期列表。"""
-    return success(db.get_summary_dates())
+    try:
+        return success(db.get_summary_dates())
+    except Exception:
+        return error("数据库连接失败", status=503)
 
 
 # ── summary ───────────────────────────────────────────────────
@@ -195,7 +210,10 @@ def get_summary():
     date = request.args.get("date", "")
     if not date:
         return error("缺少 date 参数")
-    data = db.get_summary(date)
+    try:
+        data = db.get_summary(date)
+    except Exception:
+        return error("数据库连接失败", status=503)
     if not data:
         return error("该日期暂无摘要", code=404, status=404)
     return success(data)
@@ -339,7 +357,10 @@ def get_project():
     date = request.args.get("date", "")
     if not date:
         return error("缺少 date 参数")
-    project = db.get_project_by_date(date)
+    try:
+        project = db.get_project_by_date(date)
+    except Exception:
+        return error("数据库连接失败", status=503)
     if not project:
         return error("该日期暂无精品项目", code=404, status=404)
     return success(project)
@@ -348,7 +369,10 @@ def get_project():
 @app.route("/api/project-dates", methods=["GET"])
 def list_project_dates():
     """返回有精品项目的日期列表。"""
-    return success(db.get_project_dates())
+    try:
+        return success(db.get_project_dates())
+    except Exception:
+        return error("数据库连接失败", status=503)
 
 
 @app.route("/api/project/intro", methods=["POST"])

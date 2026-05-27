@@ -41,7 +41,9 @@
 
   <!-- 错误态 -->
   <view class="error" wx:elif="{{error}}">
+    <text class="error-icon">⚠️</text>
     <text class="error-text">{{error}}</text>
+    <view class="error-retry" bind:tap="onRetry">点击重试</view>
   </view>
 
   <!-- 空状态 -->

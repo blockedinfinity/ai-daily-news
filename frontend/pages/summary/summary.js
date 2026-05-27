@@ -10,6 +10,7 @@ Page({
     project: null,
     loading: true,
     noProject: false,
+    error: "",
   },
 
   onLoad() {
@@ -47,7 +48,7 @@ Page({
 
       this.loadProject(currentDate);
     } catch (e) {
-      this.setData({ loading: false });
+      this.setData({ loading: false, error: "加载失败，请重试" });
     }
   },
 
@@ -62,8 +63,16 @@ Page({
       if (e.msg && (e.msg.includes("暂无") || e.msg.includes("404"))) {
         this.setData({ loading: false, noProject: true });
       } else {
-        this.setData({ loading: false, noProject: true });
+        this.setData({ loading: false, error: "加载失败，请重试" });
       }
+    }
+  },
+
+  onRetry() {
+    if (this.data.currentDate) {
+      this.loadProject(this.data.currentDate);
+    } else {
+      this.loadDates();
     }
   },
 

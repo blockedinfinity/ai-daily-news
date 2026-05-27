@@ -162,6 +162,20 @@
   color: #e74c3c;
 }
 
+.error-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.error-retry {
+  margin-top: 30rpx;
+  padding: 16rpx 48rpx;
+  background: #1a73e8;
+  color: #fff;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+}
+
 /* ===== 空状态 ===== */
 .empty {
   display: flex;
